@@ -35,6 +35,7 @@
 
     .evo:hover {
         transform: scale(1.2);
+
     }
 </style>
 
@@ -53,8 +54,8 @@
                 </h1>
 
                 <% if (pokemon.pokemon_shiny_img) { %>
-                    <button id="shinyToggleBtn" class="shiny-button btn btn-sm d-inline-block" onclick="toggleShiny()"
-                        title="View Shiny" style="cursor: pointer;">
+                    <button id="shinyToggleBtn" class="shiny-button btn d-inline-block" onclick="toggleShiny()"
+                        title="View Shiny" style="cursor: pointer; font-size: 1.2rem;">
                         ✨
                     </button>
                     <% } %>
@@ -62,19 +63,19 @@
 
             <div class="d-flex flex-row align-items-center justify-content-center gap-3 my-3">
                 <div class="col-1 text-end">
-                    <% if (pokemon.prev_id) { %>
-                        <a href="/pokemon/<%= pokemon.prev_id %>"
-                            class="btn btn-outline-secondary rounded-circle d-flex align-items-center justify-content-center shadow-sm"
-                            style="width: 45px; height: 45px;" title="Previous Pokémon">
-                            <i class="bi bi-chevron-left fs-5"></i>
-                        </a>
-                        <% } %>
+
+                    <a href="/pokemon/<%= pokemon.prev_id %>"
+                        class="btn btn-outline-secondary rounded-circle d-flex align-items-center justify-content-center shadow-sm"
+                        style="width: 45px; height: 45px;" title="Previous Pokémon">
+                        <i class="bi bi-chevron-left fs-5"></i>
+                    </a>
+
                 </div>
                 <div class="col-md-6 text-center">
                     <% if (pokemon.pokemon_img) { %>
                         <!-- Added id="pokemonImage" back here so JS can target it -->
                         <img id="pokemonImage" src="<%= pokemon.pokemon_img %>" alt="<%= pokemon.pokemon_name %>"
-                            class="img-fluid mb-3" style="max-height: 300px;">
+                            class="img-fluid mb-2" style="max-height: 300px;">
                         <% } else { %>
                             <p class="text-muted">No image available</p>
                             <% } %>
@@ -292,19 +293,19 @@
                         <div class="text-center mt-2">
                             <p class="mb-4 fw-semibold" style="font-size: 1.4rem;">Evolution Line</p>
 
-                            <div class="d-flex align-items-center justify-content-center gap-3">
+
+                            <div class="d-flex align-items-center justify-content-center gap-3 flex-wrap">
 
                                 <!-- 1. Pre-Evolution (If exists) -->
                                 <% if (pokemon.evolved_from_name) { %>
                                     <a href="/pokemon/<%= pokemon.evolved_from_id %>" class="text-decoration-none">
-                                        <div class="evo d-flex flex-column align-items-center">
+                                        <div class=" evo d-flex flex-column align-items-center">
                                             <div class="rounded-circle bg-light border shadow-sm overflow-hidden d-flex align-items-center justify-content-center mb-1"
-                                                style="width: 70px; height: 70px;">
+                                                style="width: 85px; height: 85px;">
                                                 <% if (pokemon.evolved_from_img) { %>
-                                                    <!-- Increased inner image width/height to 65px -->
                                                     <img src="<%= pokemon.evolved_from_img %>"
                                                         alt="<%= pokemon.evolved_from_name %>"
-                                                        style="width: 60px; height: 60px; object-fit: contain;">
+                                                        style="width: 65px; height: 65px; object-fit: contain;">
                                                     <% } %>
                                             </div>
                                             <span class="badge bg-secondary text-capitalize px-2 py-1"
@@ -332,70 +333,76 @@
                                             </span>
                                         </div>
 
-                                        <!-- 3. Next Evolution (If exists) -->
-                                        <% if (pokemon.evolves_to_name) { %>
+                                        <!-- 3. Next Evolutions (Loops through all branching paths if any exist) -->
+                                        <% if (pokemon.evolves_to_names) { %>
                                             <span class="text-muted fw-bold">→</span>
-                                            <a href="/pokemon/<%= pokemon.evolves_to_id %>"
-                                                class="text-decoration-none">
-                                                <div class="evo d-flex flex-column align-items-center">
-                                                    <div class=" rounded-circle bg-light border shadow-sm overflow-hidden d-flex align-items-center justify-content-center mb-1"
-                                                        style="width: 70px; height: 70px;">
-                                                        <% if (pokemon.evolves_to_img) { %>
-                                                            <img src="<%= pokemon.evolves_to_img %>"
-                                                                alt="<%= pokemon.evolves_to_name %>"
-                                                                style="width: 60px; height: 60px; object-fit: contain;">
-                                                            <% } %>
-                                                    </div>
-                                                    <span class="badge bg-secondary text-capitalize px-2 py-1"
-                                                        style="font-size: 0.75rem;">
-                                                        <%= pokemon.evolves_to_name %>
-                                                    </span>
-                                                </div>
-                                            </a>
+                                            <div class="d-flex flex-row gap-3 flex-wrap justify-content-center">
+                                                <% const nextIds=pokemon.evolves_to_ids.split(','); const
+                                                    nextNames=pokemon.evolves_to_names.split(','); const
+                                                    nextImgs=pokemon.evolves_to_imgs.split(','); for (let i=0; i <
+                                                    nextNames.length; i++) { %>
+                                                    <a href="/pokemon/<%= nextIds[i] %>" class="text-decoration-none">
+                                                        <div class="evo d-flex flex-column align-items-center">
+                                                            <div class="rounded-circle bg-light border shadow-sm overflow-hidden d-flex align-items-center justify-content-center mb-1"
+                                                                style="width: 85px; height: 85px;">
+                                                                <% if (nextImgs[i]) { %>
+                                                                    <img src="<%= nextImgs[i] %>"
+                                                                        alt="<%= nextNames[i] %>"
+                                                                        style="width: 65px; height: 65px; object-fit: contain;">
+                                                                    <% } %>
+                                                            </div>
+                                                            <span class="badge bg-secondary text-capitalize px-2 py-1"
+                                                                style="font-size: 0.75rem;">
+                                                                <%= nextNames[i] %>
+                                                            </span>
+                                                        </div>
+                                                    </a>
+                                                    <% } %>
+                                            </div>
                                             <% } %>
+
                             </div>
                         </div>
                     </div>
-
                     <div class="text-center mt-5">
-                        <a href="/pokedex" class="btn btn-outline-secondary">Back to Pokedex</a>
+                        <a href="/pokedex" class="btn btn-outline-secondary" style="font-size: 1.2rem;">Back to
+                            Pokedéx</a>
                     </div>
 
                     <footer class="small text-center text-muted mt-4 mb-5">
-                        <p>Pokémon data sourced from <a href="https://pokeapi.co/" target="_blank">PokeAPI</a>.<br>All
+                        <p>Pokémon data sourced from <a href="https://pokeapi.co/" target="_blank">PokéAPI</a>.<br>All
                             rights belong to Nintendo.</p>
                     </footer>
                 </div>
             </div>
-        </div>
 
-        <!-- Client-side JavaScript functionality -->
-        <script>
-            // Audio playback handler
-            function playCry(url) {
-                const audio = new Audio(url);
-                audio.play().catch(err => console.log("Audio playback blocked or failed:", err));
-            }
-
-            // Shiny image toggle handler
-            let isShiny = false;
-            const normalImg = "<%= pokemon.pokemon_img %>";
-            const shinyImg = "<%= pokemon.pokemon_shiny_img %>";
-
-            function toggleShiny() {
-                const imgElement = document.getElementById('pokemonImage');
-                const btnElement = document.getElementById('shinyToggleBtn');
-
-                isShiny = !isShiny;
-                if (isShiny) {
-                    imgElement.src = shinyImg;
-                    btnElement.classList.replace('btn-outline-warning', 'btn-warning');
-                } else {
-                    imgElement.src = normalImg;
-                    btnElement.classList.replace('btn-warning', 'btn-outline-warning');
+            <!-- Client-side JavaScript functionality -->
+            <script>
+                // Audio playback handler
+                function playCry(url) {
+                    const audio = new Audio(url);
+                    audio.play().catch(err => console.log("Audio playback blocked or failed:", err));
                 }
-            }
-        </script>
+
+                // Shiny image toggle handler
+                let isShiny = false;
+                const normalImg = "<%= pokemon.pokemon_img %>";
+                const shinyImg = "<%= pokemon.pokemon_shiny_img %>";
+
+                function toggleShiny() {
+                    const imgElement = document.getElementById('pokemonImage');
+                    const btnElement = document.getElementById('shinyToggleBtn');
+
+                    isShiny = !isShiny;
+                    if (isShiny) {
+                        imgElement.src = shinyImg;
+                        btnElement.classList.replace('btn-outline-warning', 'btn-warning');
+                    } else {
+                        imgElement.src = normalImg;
+                        btnElement.classList.replace('btn-warning', 'btn-outline-warning');
+                    }
+                }
+            </script>
 </body>
 
 </html>
