@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <title>Pokemons</title>
+    <title>Pokemons - PokeWeb</title>
 </head>
 <style>
     .card {
@@ -36,80 +36,229 @@
     }
 </style>
 
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const searchInput = document.querySelector('input[name="search"]');
+        const filterForm = document.querySelector('form');
+        // Targets each individual card column wrapper
+        const pokemonCards = document.querySelectorAll('.row.row-cols-3 > .col, .row.row-cols-md-3 > .col, .row.row-cols-lg-3 > .col');
+
+        function applyRealTimeFilters() {
+            const searchQuery = searchInput ? searchInput.value.toLowerCase().trim() : '';
+
+            // Get all checked generation values
+            const checkedGens = Array.from(document.querySelectorAll('input[name="generations"]:checked')).map(cb => cb.value);
+
+            // Get all checked type values
+            const checkedTypes = Array.from(document.querySelectorAll('input[name="types"]:checked')).map(cb => cb.value.toLowerCase());
+
+            pokemonCards.forEach(card => {
+                // 1. Extract Pokémon name
+                const nameEl = card.querySelector('h5, .card-title, .fw-bold, a');
+                const name = nameEl ? nameEl.textContent.toLowerCase() : '';
+
+                // 2. Extract Generation data attribute
+                const cardGen = card.getAttribute('data-generation');
+
+                // 3. Extract Type badges text
+                const typeBadges = Array.from(card.querySelectorAll('.badge')).map(badge => badge.textContent.toLowerCase().trim());
+
+                // 4. Match criteria
+                const matchesSearch = name.includes(searchQuery);
+                const matchesGen = checkedGens.length === 0 || checkedGens.includes(cardGen);
+                const matchesType = checkedTypes.length === 0 || checkedTypes.every(t => typeBadges.includes(t));
+
+                // 5. Show or hide card dynamically
+                if (matchesSearch && matchesGen && matchesType) {
+                    card.style.display = '';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        // Real-time filtering triggers
+        if (filterForm) {
+            filterForm.addEventListener('input', applyRealTimeFilters);
+            filterForm.addEventListener('change', applyRealTimeFilters);
+        }
+    });
+</script>
+
 <body>
     <%- include('header') %>
         <div class="container mt-5">
-            <h1 class="mb-4 text-center">Pokedex</h1>
+            <h1 class="mb-5 text-center">Pokédex</h1>
+            <!-- Centered Search and Filter Bar -->
+            <div class="row justify-content-center mb-4">
+                <div class="col-md-8 position-relative">
+                    <form action="/pokedex" method="GET">
 
-            <!-- 
-      row-cols-md-3: Shows 3 cards per row on medium screens
-      row-cols-lg-4: Shows 4 cards per row on large screens
-      g-4: Adds consistent spacing (gaps) between cards
-    -->
-            <div class="row row-cols-3 row-cols-md-3 row-cols-lg-3 g-3">
-                <% if (pokemons.length===0) { %>
-                    <div class="col">
-                        <p class="text-muted">No pokemons added yet!</p>
-                    </div>
-                    <% } else { %>
-                        <% pokemons.forEach(pokemon=> { %>
-                            <div class="col">
-                                <!-- card h-100 ensures all cards in a row match the same height -->
-                                <div class="card h-100 p-3 shadow-sm text-center" style="cursor: pointer;"
-                                    onclick="window.location.href='/pokemon/<%= pokemon.id %>'">
+                        <!-- Top Search Bar & Filter Toggle Row -->
+                        <div class="d-flex justify-content-center align-items-center">
+                            <input type="text" name="search" class="form-control shadow-sm"
+                                placeholder="Search Pokémon..."
+                                value="<%= typeof searchPokemon !== 'undefined' ? searchPokemon : '' %>">
 
-                                    <p class="mb-1 text-muted">
-                                        <small>#<%= String(pokemon.id).padStart(3, '0' ) %></small>
-                                    </p>
+                            <button class="btn btn-outline-primary ms-2 shadow-sm" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false"
+                                aria-controls="filterCollapse">
+                                <i class="bi bi-filter"></i> Filter
+                            </button>
 
-                                    <% if (pokemon.image) { %>
-                                        <img src="<%= pokemon.image %>" alt="<%= pokemon.name %>"
-                                            class="img-fluid mx-auto mb-2" style="max-height: 120px;">
-                                        <% } else { %>
-                                            <p class="text-muted">No image available</p>
+                            <% if (typeof searchPokemon !=='undefined' && searchPokemon) { %>
+                                <a href="/pokedex" class="btn btn-outline-secondary ms-2 text-nowrap">Reset</a>
+                                <% } %>
+                        </div>
+
+                        <!-- Collapsible Filter Panel -->
+                        <div class="collapse mt-2 position-absolute start-0 end-0 shadow-lg" id="filterCollapse"
+                            style="z-index: 1000;">
+                            <div class="card card-body bg-white border">
+                                <!-- Generation Checkboxes (Fixed with row/col structure) -->
+                                <div class="col-md-4 mb-3 border-end">
+                                    <h6 class="fw-bold text-secondary">Generations</h6>
+                                    <div class="row g-1">
+                                        <% for(let i=1; i <=9; i++) { %>
+                                            <div class="col-4">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" name="generations"
+                                                        value="<%= i %>" id="gen<%= i %>" <%=typeof selectedGens
+                                                        !=='undefined' && selectedGens.includes(String(i)) ? 'checked'
+                                                        : '' %>>
+                                                    <label class="form-check-label small" for="gen<%= i %>">Gen <%= i %>
+                                                    </label>
+                                                </div>
+                                            </div>
                                             <% } %>
+                                    </div>
+                                </div>
 
-                                                <h5 class="mb-1 mt-2 card-title text-capitalize">
-                                                    <%= pokemon.name %>
-                                                </h5>
-
-                                                <% // Map standard Pokémon types to their colors const typeColors={
-                                                    const typeColors={ grass: '#9bcc50' , poison: '#b97fc9' ,
-                                                    fire: '#fd7d24' , water: '#4592c4' , bug: '#729f3f' ,
-                                                    normal: '#a4acaf' , electric: '#eed535' , fairy: '#fdb9e9' ,
-                                                    fighting: '#d56723' , psychic: '#f366b9' , rock: '#a38c21' ,
-                                                    ghost: '#7b62a3' , ice: '#51c4e7' , dragon: '#53a4cf' ,
-                                                    ground: '#ab9842' , steel: '#9eb7b8' , dark: '#707070' ,
-                                                    flying: '#3dc7be' }; %>
-
-                                                    <p class="mb-2 text-muted">
-                                                        <% if (pokemon.type) { %>
-                                                            <% const typesArray=pokemon.type.split(',').map(t=>
-                                                                t.trim().toLowerCase()); %>
-                                                                <% typesArray.forEach(t=> { %>
-                                                                    <!-- Directly evaluate the color inside the style output tag -->
-                                                                    <span class="badge me-1 text-white"
-                                                                        style="background-color: <%= typeColors[t] || '#6c757d' %>;">
-                                                                        <%= t %>
-                                                                    </span>
-                                                                    <% }) %>
-                                                                        <% } else { %>
-                                                                            <span class="text-muted">None</span>
-                                                                            <% } %>
-                                                    </p>
-
-                                                    <div class="card-details">
-                                                        <p class="small text-secondary mb-1"> <%= pokemon.description %></p>
+                                <!-- Type Checkboxes -->
+                                <div class="col-md-4 mb-3">
+                                    <h6 class="fw-bold text-secondary">Types</h6>
+                                    <div style="max-height: 160px; overflow-y: auto;" class="pe-2">
+                                        <% const allTypes=['grass', 'poison' , 'fire' , 'water' , 'bug' , 'normal'
+                                            , 'electric' , 'fairy' , 'fighting' , 'psychic' , 'rock' , 'ghost' , 'ice'
+                                            , 'dragon' , 'ground' , 'steel' , 'dark' , 'flying' ]; %>
+                                            <div class="row g-1">
+                                                <% allTypes.forEach(t=> { %>
+                                                    <div class="col-6">
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="checkbox" name="types"
+                                                                value="<%= t %>" id="type_<%= t %>" <%=typeof
+                                                                selectedTypes !=='undefined' &&
+                                                                selectedTypes.includes(t) ? 'checked' : '' %>>
+                                                            <label class="form-check-label text-capitalize small"
+                                                                for="type_<%= t %>">
+                                                                <%= t %>
+                                                            </label>
+                                                        </div>
                                                     </div>
+                                                    <% }) %>
+                                            </div>
+                                    </div>
                                 </div>
                             </div>
-                            <% }) %>
-                                <% } %>
+                        </div>
+                    </form>
+                </div>
+                <div class="row row-cols-3 row-cols-md-3 row-cols-lg-3 g-3">
+
+                    <% if (pokemons.length===0) { %>
+                        <div class="container mt-5">
+                            <p class="text-muted text-center">Invalid</p>
+                        </div>
+                        <% } else { %>
+                            <% pokemons.forEach(pokemon=> { %>
+                                <div class="col">
+                                    <!-- card h-100 ensures all cards in a row match the same height -->
+                                    <div class="card h-100 p-3 shadow-sm text-center" style="cursor: pointer;"
+                                        onclick="window.location.href='/pokemon/<%= pokemon.id %>'">
+
+                                        <p class="mb-1 text-muted">
+                                            <small>#<%= String(pokemon.id).padStart(3, '0' ) %></small>
+                                        </p>
+
+                                        <% if (pokemon.image) { %>
+                                            <img src="<%= pokemon.image %>" alt="<%= pokemon.name %>"
+                                                class="img-fluid mx-auto mb-2" style="max-height: 120px;">
+                                            <% } else { %>
+                                                <p class="text-muted">No image available</p>
+                                                <% } %>
+
+                                                    <h5 class="mb-1 mt-2 card-title text-capitalize">
+                                                        <%= pokemon.name %>
+                                                    </h5>
+
+                                                    <% // Map standard Pokémon types to their colors const const
+                                                        typeColors={ grass: '#9bcc50' , poison: '#b97fc9' ,
+                                                        fire: '#fd7d24' , water: '#4592c4' , bug: '#729f3f' ,
+                                                        normal: '#a4acaf' , electric: '#eed535' , fairy: '#fdb9e9' ,
+                                                        fighting: '#d56723' , psychic: '#f366b9' , rock: '#a38c21' ,
+                                                        ghost: '#7b62a3' , ice: '#51c4e7' , dragon: '#53a4cf' ,
+                                                        ground: '#ab9842' , steel: '#9eb7b8' , dark: '#707070' ,
+                                                        flying: '#3dc7be' }; %>
+
+                                                        <p class="mb-2 text-muted">
+                                                            <% if (pokemon.type) { %>
+                                                                <% const typesArray=pokemon.type.split(',').map(t=>
+                                                                    t.trim().toLowerCase()); %>
+                                                                    <% typesArray.forEach(t=> { %>
+                                                                        <!-- Directly evaluate the color inside the style output tag -->
+                                                                        <span class="badge me-1 text-white"
+                                                                            style="background-color: <%= typeColors[t] || '#6c757d' %>;">
+                                                                            <%= t %>
+                                                                        </span>
+                                                                        <% }) %>
+                                                                            <% } else { %>
+                                                                                <span class="text-muted">None</span>
+                                                                                <% } %>
+                                                        </p>
+
+                                                        <div class="card-details">
+                                                            <p class="small text-secondary mb-1">
+                                                                <%= pokemon.description %>
+                                                            </p>
+                                                        </div>
+                                    </div>
+                                </div>
+                                <% }) %>
+                                    <% } %>
+                </div>
+                <footer class="small text-center text-muted mt-4">
+                    <p>Pokémon data sourced from <a href="https://pokeapi.co/" target="_blank">PokeAPI</a>.
+                        <br>All rights
+                        belong to Nintendo.
+                    </p>
+                </footer>
             </div>
-            <footer class="small text-center text-muted mt-4">
-                <p>Pokémon data sourced from <a href="https://pokeapi.co/" target="_blank">PokeAPI</a>. <br>All rights
-                    belong to Nintendo.</p>
-            </footer>
         </div>
-        </div>
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const searchInput = document.querySelector('input[name="search"]');
+                // Select all the card container elements (adjust the selector if your card wrapper has a different class)
+                const pokemonCards = document.querySelectorAll('.row.row-cols-3 > .col');
+
+                if (searchInput) {
+                    searchInput.addEventListener('input', (e) => {
+                        const query = e.target.value.toLowerCase().trim();
+
+                        pokemonCards.forEach(card => {
+                            // Find the Pokémon name text inside each card
+                            const nameElement = card.querySelector('.card-title, h5, .fw-bold, a');
+                            const pokemonName = nameElement ? nameElement.textContent.toLowerCase() : '';
+
+                            // Show the card if it matches the query, otherwise hide it
+                            if (pokemonName.includes(query)) {
+                                card.style.display = '';
+                            } else {
+                                card.style.display = 'none';
+                            }
+                        });
+                    });
+                }
+
+            });
+        </script>
 </body>
