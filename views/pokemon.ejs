@@ -34,7 +34,8 @@
     }
 
     .evo:hover {
-        transform: scale(1.2);
+        transform: scale(1.1);
+        transition: transform 0.2s ease-in-out;
 
     }
 </style>
@@ -135,13 +136,13 @@
             <div class="row mt-4 text-center">
                 <div class="col">
                     <i>
-                        <%= pokemon.pokemon_desc %>
+                        "<%= pokemon.pokemon_desc %>"
                     </i>
                 </div>
             </div>
             <br>
 
-            <div class="row justify-content-center mt-2">
+            <div class="row justify-content-center mt-2 stats-container">
                 <div class="col-md-8">
                     <div class="card p-5 shadow-sm">
                         <div class="row text-center">
@@ -195,14 +196,14 @@
                         <div class="mb-3">
                             <div class="d-flex justify-content-between mb-1">
                                 <span class="fw-semibold">HP</span>
-                                <span>
-                                    <%= pokemon.pokemon_hp %>
-                                </span>
+                                <!-- Added class="counter" and data-target attribute -->
+                                <span><%= pokemon.pokemon_hp %></span>
                             </div>
                             <div class="progress" style="height: 10px;">
+                                <!-- Fixed pokemon.hp to pokemon.pokemon_hp -->
                                 <div class="progress-bar" role="progressbar"
-                                    style="width: <%= Math.min((pokemon.pokemon_hp / 200) * 100, 100) %>%;"
-                                    aria-valuenow="<%= pokemon.pokemon_hp %>" aria-valuemin="0" aria-valuemax="200">
+                                    style="width: 0%; transition: width 1s cubic-bezier(0.1, 1, 0.1, 1);"
+                                    data-target-width="<%= (pokemon.pokemon_hp / 255) * 100 %>%">
                                 </div>
                             </div>
                         </div>
@@ -211,14 +212,14 @@
                         <div class="mb-3">
                             <div class="d-flex justify-content-between mb-1">
                                 <span class="fw-semibold">Attack</span>
-                                <span>
-                                    <%= pokemon.pokemon_atk %>
-                                </span>
+                                <!-- Added class="counter" and data-target attribute -->
+                                <span><%= pokemon.pokemon_atk %></span>
                             </div>
                             <div class="progress" style="height: 10px;">
+                                <!-- Fixed pokemon.atk to pokemon.pokemon_atk -->
                                 <div class="progress-bar" role="progressbar"
-                                    style="width: <%= Math.min((pokemon.pokemon_atk / 200) * 100, 100) %>%;"
-                                    aria-valuenow="<%= pokemon.pokemon_atk %>" aria-valuemin="0" aria-valuemax="200">
+                                    style="width: 0%; transition: width 1s cubic-bezier(0.1, 1, 0.1, 1);"
+                                    data-target-width="<%= (pokemon.pokemon_atk / 255) * 100 %>%">
                                 </div>
                             </div>
                         </div>
@@ -227,14 +228,12 @@
                         <div class="mb-3">
                             <div class="d-flex justify-content-between mb-1">
                                 <span class="fw-semibold">Defense</span>
-                                <span>
-                                    <%= pokemon.pokemon_def %>
-                                </span>
+                                <span><%= pokemon.pokemon_def %></span>
                             </div>
                             <div class="progress" style="height: 10px;">
                                 <div class="progress-bar" role="progressbar"
-                                    style="width: <%= Math.min((pokemon.pokemon_def / 200) * 100, 100) %>%;"
-                                    aria-valuenow="<%= pokemon.pokemon_def %>" aria-valuemin="0" aria-valuemax="200">
+                                    style="width: 0%; transition: width 1s cubic-bezier(0.1, 1, 0.1, 1);"
+                                    data-target-width="<%= (pokemon.pokemon_def / 255) * 100 %>%">
                                 </div>
                             </div>
                         </div>
@@ -243,14 +242,12 @@
                         <div class="mb-3">
                             <div class="d-flex justify-content-between mb-1">
                                 <span class="fw-semibold">Sp. Attack</span>
-                                <span>
-                                    <%= pokemon.pokemon_sp_atk %>
-                                </span>
+                                <span><%= pokemon.pokemon_sp_atk %></span>
                             </div>
                             <div class="progress" style="height: 10px;">
                                 <div class="progress-bar" role="progressbar"
-                                    style="width: <%= Math.min((pokemon.pokemon_sp_atk / 200) * 100, 100) %>%;"
-                                    aria-valuenow="<%= pokemon.pokemon_sp_atk %>" aria-valuemin="0" aria-valuemax="200">
+                                    style="width: 0%; transition: width 1s cubic-bezier(0.1, 1, 0.1, 1);"
+                                    data-target-width="<%= (pokemon.pokemon_sp_atk / 255) * 100 %>%">
                                 </div>
                             </div>
                         </div>
@@ -259,14 +256,12 @@
                         <div class="mb-3">
                             <div class="d-flex justify-content-between mb-1">
                                 <span class="fw-semibold">Sp. Defense</span>
-                                <span>
-                                    <%= pokemon.pokemon_sp_def %>
-                                </span>
+                                <span><%= pokemon.pokemon_sp_def %></span>
                             </div>
                             <div class="progress" style="height: 10px;">
                                 <div class="progress-bar" role="progressbar"
-                                    style="width: <%= Math.min((pokemon.pokemon_sp_def / 200) * 100, 100) %>%;"
-                                    aria-valuenow="<%= pokemon.pokemon_sp_def %>" aria-valuemin="0" aria-valuemax="200">
+                                    style="width: 0%; transition: width 1s cubic-bezier(0.1, 1, 0.1, 1);"
+                                    data-target-width="<%= (pokemon.pokemon_sp_def / 255) * 100 %>%">
                                 </div>
                             </div>
                         </div>
@@ -275,14 +270,26 @@
                         <div class="mb-3">
                             <div class="d-flex justify-content-between mb-1">
                                 <span class="fw-semibold">Speed</span>
-                                <span>
-                                    <%= pokemon.pokemon_speed %>
-                                </span>
+                                <span><%= pokemon.pokemon_speed %></span>
                             </div>
                             <div class="progress" style="height: 10px;">
                                 <div class="progress-bar" role="progressbar"
-                                    style="width: <%= Math.min((pokemon.pokemon_speed / 200) * 100, 100) %>%;"
-                                    aria-valuenow="<%= pokemon.pokemon_speed %>" aria-valuemin="0" aria-valuemax="200">
+                                    style="width: 0%; transition: width 1s cubic-bezier(0.1, 1, 0.1, 1);"
+                                    data-target-width="<%= (pokemon.pokemon_speed / 255) * 100 %>%">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Speed Stat -->
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="fw-semibold">Speed</span>
+                                <span><%= pokemon.pokemon_speed %></span>
+                            </div>
+                            <div class="progress" style="height: 10px;">
+                                <div class="progress-bar" role="progressbar"
+                                    style="width: 0%; transition: width 1s cubic-bezier(0.1, 1, 0.1, 1);"
+                                    data-target-width="<%= (pokemon.pokemon_speed / 255) * 100 %>%">
                                 </div>
                             </div>
                         </div>
@@ -402,6 +409,59 @@
                         btnElement.classList.replace('btn-warning', 'btn-outline-warning');
                     }
                 }
+            </script>
+            <script>
+                document.addEventListener('DOMContentLoaded', () => {
+                    const statsSection = document.querySelector('.stats-container');
+
+                    if (!statsSection) return;
+
+                    // Configure the observer
+                    const observerOptions = {
+                        root: null, // Uses the browser viewport
+                        threshold: 0.4 // Triggers when 40% of the stats section becomes visible
+                    };
+
+                    const observer = new IntersectionObserver((entries, observerInstance) => {
+                        entries.forEach(entry => {
+                            if (entry.isIntersecting) {
+                                // 1. Animate Progress Bars
+                                document.querySelectorAll('.progress-bar').forEach(bar => {
+                                    bar.style.width = bar.getAttribute('data-target-width');
+                                });
+
+                                // 2. Animate Stat Number Count-Up
+                                document.querySelectorAll('.counter').forEach(counter => {
+                                    const target = +counter.getAttribute('data-target');
+                                    const duration = 1000; // 1 second
+                                    const startTime = performance.now();
+
+                                    function updateCount(currentTime) {
+                                        const elapsed = currentTime - startTime;
+                                        const progress = Math.min(elapsed / duration, 1);
+                                        const easeProgress = 1 - Math.pow(1 - progress, 3);
+
+                                        counter.textContent = Math.floor(easeProgress * target);
+
+                                        if (progress < 1) {
+                                            requestAnimationFrame(updateCount);
+                                        } else {
+                                            counter.textContent = target;
+                                        }
+                                    }
+
+                                    requestAnimationFrame(updateCount);
+                                });
+
+                                // Stop observing once the animation has been triggered
+                                observerInstance.unobserve(entry.target);
+                            }
+                        });
+                    }, observerOptions);
+
+                    // Start observing the stats container
+                    observer.observe(statsSection);
+                });
             </script>
 </body>
 
