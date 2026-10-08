@@ -43,6 +43,7 @@ app.get('/pokedex', (req, res) => {
   const searchPokemon = req.query.search;
   const typeFilter = req.query.type;
   const generationFilter = req.query.generation;
+  const sortBy = req.query.sort || 'asc'; // 'asc' or 'desc'
 
   // SQL query using LEFT JOINs and GROUP_CONCAT for multiple types
   let sql = `SELECT 
@@ -81,6 +82,13 @@ app.get('/pokedex', (req, res) => {
   // Group by Pokémon ID so dual-types don't duplicate the row
   sql += ` GROUP BY p.pokemon_id`;
 
+  // Apply sorting based on sort query parameter
+  if (sortBy === 'desc') {
+    sql += ` ORDER BY p.pokemon_id DESC`; // Newest to Oldest
+  } else {
+    sql += ` ORDER BY p.pokemon_id ASC`;  // Oldest to Newest
+  }
+
   db.query(sql, params, (err, rows) => {
     if (err) {
       console.error(err);
@@ -91,7 +99,8 @@ app.get('/pokedex', (req, res) => {
       pokemons: rows, 
       searchPokemon: searchPokemon || '', // Updated variable name to match your template view
       selectedType: typeFilter || '', 
-      selectedGen: generationFilter || '' 
+      selectedGen: generationFilter || '',
+      currentSortQuery: sortBy
     });
   });
 });
