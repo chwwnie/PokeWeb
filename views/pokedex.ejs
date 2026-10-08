@@ -110,14 +110,13 @@
 
                             <!-- Compact Reverse Button using ⇅ -->
                             <a href="/pokedex?sort=<%= typeof currentSortQuery !== 'undefined' && currentSortQuery === 'asc' ? 'desc' : 'asc' %>"
-                                class="ms-3 text-muted text-decoration-none"
-                                style="font-size: 1.3rem;">
+                                class="ms-3 text-muted text-decoration-none" style="font-size: 1.3rem;">
                                 ⇅
                             </a>
 
                             <!-- Reset Button (Only shows up when a search or filter is active, or kept always visible) -->
-                            <a href="/pokedex" class="ms-3 text-muted text-decoration-none"
-                                title="Clear Filters" style="font-size: 1.3rem;">
+                            <a href="/pokedex" class="ms-3 text-muted text-decoration-none" title="Clear Filters"
+                                style="font-size: 1.3rem;">
                                 ⟳
                             </a>
                         </div>
@@ -245,6 +244,39 @@
                                 <% }) %>
                                     <% } %>
                 </div>
+
+                <% if (typeof totalPages !=='undefined' && totalPages> 1) { %>
+                    <nav aria-label="Pokedex Navigation" class="d-flex justify-content-center mt-5 mb-4">
+                        <ul class="pagination justify-content-center mb-0">
+
+                            <!-- Previous Button -->
+                            <li class="page-item <%= currentPage <= 1 ? 'disabled' : '' %>">
+                                <% let prevParams={ ...queryParams, page: currentPage - 1 }; %>
+                                <a class="page-link text-muted"
+                                    href="/pokedex?<%= new URLSearchParams(prevParams).toString() %>">&lt;</a>
+                            </li>
+
+                            <!-- Page Number Buttons Loop -->
+                            <% for(let i=1; i <=totalPages; i++) { %>
+                                <li class="page-item <%= currentPage === i ? 'active' : '' %>">
+                                    <% let pageParams={ ...queryParams, page: i }; %>
+                                    <a class="page-link text-muted"
+                                        href="/pokedex?<%= new URLSearchParams(pageParams).toString() %>">
+                                        <%= i %>
+                                    </a>
+                                </li>
+                            <% } %>
+
+                            <!-- Next Button -->
+                            <li class="page-item <%= currentPage >= totalPages ? 'disabled' : '' %>">
+                                <% let nextParams={ ...queryParams, page: currentPage + 1 }; %>
+                                <a class="page-link text-muted"
+                                    href="/pokedex?<%= new URLSearchParams(nextParams).toString() %>">&gt;</a>
+                            </li>
+
+                        </ul>
+                    </nav>
+                <% } %>
                 <footer class="small text-center text-muted mt-4">
                     <p>Pokémon data sourced from <a href="https://pokeapi.co/" target="_blank">PokeAPI</a>.
                         <br>All rights
