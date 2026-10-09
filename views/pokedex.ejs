@@ -36,53 +36,34 @@
         opacity: 1;
         margin-top: 10px;
     }
+
+    .genBadge {
+        background-color: #da5b5b;
+    }
 </style>
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const searchInput = document.querySelector('input[name="search"]');
         const filterForm = document.querySelector('form');
-        // Targets each individual card column wrapper
-        const pokemonCards = document.querySelectorAll('.row.row-cols-3 > .col, .row.row-cols-md-3 > .col, .row.row-cols-lg-3 > .col');
+        let searchTimeout;
 
-        function applyRealTimeFilters() {
-            const searchQuery = searchInput ? searchInput.value.toLowerCase().trim() : '';
-
-            // Get all checked generation values
-            const checkedGens = Array.from(document.querySelectorAll('input[name="generations"]:checked')).map(cb => cb.value);
-
-            // Get all checked type values
-            const checkedTypes = Array.from(document.querySelectorAll('input[name="types"]:checked')).map(cb => cb.value.toLowerCase());
-
-            pokemonCards.forEach(card => {
-                // 1. Extract Pokémon name
-                const nameEl = card.querySelector('h5, .card-title, .fw-bold, a');
-                const name = nameEl ? nameEl.textContent.toLowerCase() : '';
-
-                // 2. Extract Generation data attribute
-                const cardGen = card.getAttribute('data-generation');
-
-                // 3. Extract Type badges text
-                const typeBadges = Array.from(card.querySelectorAll('.badge')).map(badge => badge.textContent.toLowerCase().trim());
-
-                // 4. Match criteria
-                const matchesSearch = name.includes(searchQuery);
-                const matchesGen = checkedGens.length === 0 || checkedGens.includes(cardGen);
-                const matchesType = checkedTypes.length === 0 || checkedTypes.every(t => typeBadges.includes(t));
-
-                // 5. Show or hide card dynamically
-                if (matchesSearch && matchesGen && matchesType) {
-                    card.style.display = '';
-                } else {
-                    card.style.display = 'none';
-                }
+        if (searchInput && filterForm) {
+            searchInput.addEventListener('input', () => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => filterForm.requestSubmit(), 350);
             });
         }
 
-        // Real-time filtering triggers
         if (filterForm) {
-            filterForm.addEventListener('input', applyRealTimeFilters);
-            filterForm.addEventListener('change', applyRealTimeFilters);
+            const filterPanel = document.querySelector('#filterCollapse');
+            filterPanel?.addEventListener('keydown', event => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    clearTimeout(searchTimeout);
+                    filterForm.requestSubmit();
+                }
+            });
         }
     });
 </script>
@@ -133,19 +114,22 @@
                                     <div class="col-md-6 mb-2 border-end">
                                         <h6 class="fw-bold text-secondary">Generations</h6>
                                         <div class="row g-1">
-                                            <% for(let i=1; i <=9; i++) { %>
-                                                <div class="col-4">
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="checkbox"
-                                                            name="generations" value="<%= i %>" id="gen<%= i %>"
-                                                            <%=typeof selectedGens !=='undefined' &&
-                                                            selectedGens.includes(String(i)) ? 'checked' : '' %>>
-                                                        <label class="form-check-label small" for="gen<%= i %>">Gen <%=
-                                                                i %>
-                                                        </label>
+                                            <% // Array of region names indexed by generation number (1 to 9) const
+                                                regions=['', 'Kanto' , 'Johto' , 'Hoenn' , 'Sinnoh' , 'Unova' , 'Kalos'
+                                                , 'Alola' , 'Galar' , 'Paldea' ]; %>
+                                                <% for(let i=1; i <=9; i++) { %>
+                                                    <div class="col-4">
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="checkbox"
+                                                                name="generations" value="<%= i %>" id="gen<%= i %>"
+                                                                <%=typeof selectedGens !=='undefined' &&
+                                                                selectedGens.includes(String(i)) ? 'checked' : '' %>>
+                                                            <label class="form-check-label small" for="gen<%= i %>">Gen
+                                                                <%= i %> (<%= regions[i] %>)
+                                                            </label>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                <% } %>
+                                                    <% } %>
                                         </div>
                                     </div>
 
@@ -177,6 +161,7 @@
 
                                 </div> <!-- End of row -->
 
+                                <p class="small text-muted mb-0 mt-2">Enter to apply.</p>
                             </div>
                         </div>
                     </form>
@@ -194,9 +179,13 @@
                                     <div class="card h-100 p-3 shadow-sm text-center" style="cursor: pointer;"
                                         onclick="window.location.href='/pokemon/<%= pokemon.id %>'">
 
-                                        <p class="mb-1 text-muted">
-                                            <small>#<%= String(pokemon.id).padStart(3, '0' ) %></small>
-                                        </p>
+                                        <!-- Top Row: ID on the left, Generation on the right -->
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="text-muted">#<%= String(pokemon.id).padStart(3, '0' ) %></span>
+                                            <!-- Generation Badge -->
+                                            <span class="genBadge badge opacity-75 small">Gen <%= pokemon.generation %>
+                                                    </span>
+                                        </div>
 
                                         <% if (pokemon.image) { %>
                                             <img src="<%= pokemon.image %>" alt="<%= pokemon.name %>"
@@ -249,67 +238,38 @@
                     <nav aria-label="Pokedex Navigation" class="d-flex justify-content-center mt-5 mb-4">
                         <ul class="pagination justify-content-center mb-0">
 
-                            <!-- Previous Button -->
-                            <li class="page-item <%= currentPage <= 1 ? 'disabled' : '' %>">
-                                <% let prevParams={ ...queryParams, page: currentPage - 1 }; %>
-                                <a class="page-link text-muted"
-                                    href="/pokedex?<%= new URLSearchParams(prevParams).toString() %>">&lt;</a>
-                            </li>
-
-                            <!-- Page Number Buttons Loop -->
-                            <% for(let i=1; i <=totalPages; i++) { %>
-                                <li class="page-item <%= currentPage === i ? 'active' : '' %>">
-                                    <% let pageParams={ ...queryParams, page: i }; %>
-                                    <a class="page-link text-muted"
-                                        href="/pokedex?<%= new URLSearchParams(pageParams).toString() %>">
-                                        <%= i %>
-                                    </a>
+                            <!-- Previous Button (Loops to last page if on page 1) -->
+                            <% let prevPage=currentPage <=1 ? totalPages : currentPage - 1; let prevParams={
+                                ...queryParams, page: prevPage }; %>
+                                <li class="page-item">
+                                    <a class="page-link"
+                                        href="/pokedex?<%= new URLSearchParams(prevParams).toString() %>">&lt;</a>
                                 </li>
-                            <% } %>
 
-                            <!-- Next Button -->
-                            <li class="page-item <%= currentPage >= totalPages ? 'disabled' : '' %>">
-                                <% let nextParams={ ...queryParams, page: currentPage + 1 }; %>
-                                <a class="page-link text-muted"
-                                    href="/pokedex?<%= new URLSearchParams(nextParams).toString() %>">&gt;</a>
-                            </li>
+                                <!-- Page Number Indicator -->
+                                <li class="page-item disabled">
+                                    <span class="page-link bg-light text-dark">Page <%= currentPage %> of <%= totalPages
+                                                %></span>
+                                </li>
+
+                                <!-- Next Button (Loops to page 1 if on last page) -->
+                                <% let nextPage=currentPage>= totalPages ? 1 : currentPage + 1;
+                                    let nextParams = { ...queryParams, page: nextPage };
+                                    %>
+                                    <li class="page-item">
+                                        <a class="page-link"
+                                            href="/pokedex?<%= new URLSearchParams(nextParams).toString() %>">&gt;</a>
+                                    </li>
 
                         </ul>
                     </nav>
-                <% } %>
-                <footer class="small text-center text-muted mt-4">
-                    <p>Pokémon data sourced from <a href="https://pokeapi.co/" target="_blank">PokeAPI</a>.
-                        <br>All rights
-                        belong to Nintendo.
-                    </p>
-                </footer>
+                    <% } %>
+                        <footer class="small text-center text-muted mt-4">
+                            <p>Pokémon data sourced from <a href="https://pokeapi.co/" target="_blank">PokeAPI</a>.
+                                <br>All rights
+                                belong to Nintendo.
+                            </p>
+                        </footer>
             </div>
         </div>
-        <script>
-            document.addEventListener('DOMContentLoaded', () => {
-                const searchInput = document.querySelector('input[name="search"]');
-                // Select all the card container elements (adjust the selector if your card wrapper has a different class)
-                const pokemonCards = document.querySelectorAll('.row.row-cols-3 > .col');
-
-                if (searchInput) {
-                    searchInput.addEventListener('input', (e) => {
-                        const query = e.target.value.toLowerCase().trim();
-
-                        pokemonCards.forEach(card => {
-                            // Find the Pokémon name text inside each card
-                            const nameElement = card.querySelector('.card-title, h5, .fw-bold, a');
-                            const pokemonName = nameElement ? nameElement.textContent.toLowerCase() : '';
-
-                            // Show the card if it matches the query, otherwise hide it
-                            if (pokemonName.includes(query)) {
-                                card.style.display = '';
-                            } else {
-                                card.style.display = 'none';
-                            }
-                        });
-                    });
-                }
-
-            });
-        </script>
 </body>
