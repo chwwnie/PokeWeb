@@ -32,27 +32,30 @@ async function seedPokemon(id) {
         const speed = data.stats[5].base_stat;
         const image = data.sprites.other['official-artwork'].front_default || data.sprites.front_default;
         const shinyImage = data.sprites.other['official-artwork'].front_shiny || data.sprites.front_shiny;
-        const generation = 1;
 
-        // Map generation to its official region name
-        const genName = speciesData.generation.name; // e.g., 'generation-i'
+        // Map generation to its official region name and numeric value
+        const genName = speciesData.generation.name; // e.g., 'generation-i', 'generation-ii'
         const regionMap = {
-            'generation-i': 'Kanto',
-            'generation-ii': 'Johto',
-            'generation-iii': 'Hoenn',
-            'generation-iv': 'Sinnoh',
-            'generation-v': 'Unova',
-            'generation-vi': 'Kalos',
-            'generation-vii': 'Alola',
-            'generation-viii': 'Galar',
-            'generation-ix': 'Paldea'
+            'generation-i': { region: 'Kanto', gen: 1 },
+            'generation-ii': { region: 'Johto', gen: 2 },
+            'generation-iii': { region: 'Hoenn', gen: 3 },
+            'generation-iv': { region: 'Sinnoh', gen: 4 },
+            'generation-v': { region: 'Unova', gen: 5 },
+            'generation-vi': { region: 'Kalos', gen: 6 },
+            'generation-vii': { region: 'Alola', gen: 7 },
+            'generation-viii': { region: 'Galar', gen: 8 },
+            'generation-ix': { region: 'Paldea', gen: 9 }
         };
-        const region = regionMap[genName] || 'Unknown';
+        const genInfo = regionMap[genName] || { region: 'Unknown', gen: 1 };
+        const region = genInfo.region;
+        const generation = genInfo.gen;
+
         let evolvedFromId = null;
         if (speciesData.evolves_from_species) {
             const urlParts = speciesData.evolves_from_species.url.split('/');
             const parentId = parseInt(urlParts[urlParts.length - 2]);
-            if (parentId <= 151) {
+            // Allow parent IDs up to 1025 now that Gen 2 is included
+            if (parentId <= 1025) {
                 evolvedFromId = parentId;
             }
         }
@@ -97,32 +100,28 @@ async function seedPokemon(id) {
 
                         const typeId = typeRows[0].type_id;
                         const junctionSql = `INSERT IGNORE INTO pokemon_types (pokemon_id, type_id) VALUES (?, ?)`;
-                        db.query(junctionSql, [pokemonId, typeId]); // pokemonId is now securely available here!
+                        db.query(junctionSql, [pokemonId, typeId]); 
                     });
                 });
             }
 
             // 4. Handle Abilities from the API response
             for (const abilityInfo of data.abilities) {
-                // Clean up hyphens for nice display names (e.g., 'chlorophyll')
                 const rawAbilityName = abilityInfo.ability.name;
                 const abilityName = rawAbilityName.replace(/-/g, ' ');
                 const isHidden = abilityInfo.is_hidden ? 1 : 0;
 
-                // Insert ability into 'abilities' table if it doesn't already exist
                 const abilitySql = `INSERT INTO abilities (ability_name) VALUES (?) ON DUPLICATE KEY UPDATE ability_id=LAST_INSERT_ID(ability_id)`;
 
                 db.query(abilitySql, [abilityName], (abilityErr) => {
                     if (abilityErr) return;
 
-                    // Get the ability_id
                     const getAbilityIdSql = `SELECT ability_id FROM abilities WHERE ability_name = ?`;
                     db.query(getAbilityIdSql, [abilityName], (getErr, abilityRows) => {
                         if (getErr || abilityRows.length === 0) return;
 
                         const abilityId = abilityRows[0].ability_id;
 
-                        // Insert into the pokemon_abilities junction table
                         const junctionAbilitySql = `INSERT IGNORE INTO pokemon_abilities (pokemon_id, ability_id, is_hidden) VALUES (?, ?, ?)`;
                         db.query(junctionAbilitySql, [pokemonId, abilityId, isHidden], (junctionErr) => {
                             if (junctionErr) {
@@ -134,20 +133,23 @@ async function seedPokemon(id) {
             }
         });
 
-
         console.log(`Successfully seeded ${name}!`);
 
     } catch (error) {
         console.error(`Failed to fetch Pokémon ID ${id}:`, error.message);
     }
-
 }
 
-// Run a loop sequentially to ensure base forms are inserted before their evolutions
+// Run a loop up to 1025 to pull in Generations 1 through 9
 async function runSeeder() {
-    for (let i = 1; i <= 151; i++) {
+    for (let i = 1; i <= 1025; i++) {
         await seedPokemon(i);
     }
+    // Close connection when done
+    setTimeout(() => {
+        db.end();
+        console.log('Database seeding complete and connection closed.');
+    }, 5000);
 }
 
 runSeeder();
