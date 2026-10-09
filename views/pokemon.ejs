@@ -55,8 +55,8 @@
                 </h1>
 
                 <% if (pokemon.pokemon_shiny_img) { %>
-                    <button id="shinyToggleBtn" class="shiny-button btn d-inline-block" onclick="toggleShiny()"
-                        title="View Shiny" style="cursor: pointer; font-size: 1.2rem;">
+                    <button id="shinyToggleBtn" class="shiny-button btn" onclick="toggleShiny()" title="View Shiny"
+                        style="cursor: pointer; font-size: 1.2rem; border: none;">
                         ✨
                     </button>
                     <% } %>
@@ -197,7 +197,9 @@
                             <div class="d-flex justify-content-between mb-1">
                                 <span class="fw-semibold">HP</span>
                                 <!-- Added class="counter" and data-target attribute -->
-                                <span><%= pokemon.pokemon_hp %></span>
+                                <span>
+                                    <%= pokemon.pokemon_hp %>
+                                </span>
                             </div>
                             <div class="progress" style="height: 10px;">
                                 <!-- Fixed pokemon.hp to pokemon.pokemon_hp -->
@@ -213,7 +215,9 @@
                             <div class="d-flex justify-content-between mb-1">
                                 <span class="fw-semibold">Attack</span>
                                 <!-- Added class="counter" and data-target attribute -->
-                                <span><%= pokemon.pokemon_atk %></span>
+                                <span>
+                                    <%= pokemon.pokemon_atk %>
+                                </span>
                             </div>
                             <div class="progress" style="height: 10px;">
                                 <!-- Fixed pokemon.atk to pokemon.pokemon_atk -->
@@ -228,7 +232,9 @@
                         <div class="mb-3">
                             <div class="d-flex justify-content-between mb-1">
                                 <span class="fw-semibold">Defense</span>
-                                <span><%= pokemon.pokemon_def %></span>
+                                <span>
+                                    <%= pokemon.pokemon_def %>
+                                </span>
                             </div>
                             <div class="progress" style="height: 10px;">
                                 <div class="progress-bar" role="progressbar"
@@ -242,7 +248,9 @@
                         <div class="mb-3">
                             <div class="d-flex justify-content-between mb-1">
                                 <span class="fw-semibold">Sp. Attack</span>
-                                <span><%= pokemon.pokemon_sp_atk %></span>
+                                <span>
+                                    <%= pokemon.pokemon_sp_atk %>
+                                </span>
                             </div>
                             <div class="progress" style="height: 10px;">
                                 <div class="progress-bar" role="progressbar"
@@ -256,7 +264,9 @@
                         <div class="mb-3">
                             <div class="d-flex justify-content-between mb-1">
                                 <span class="fw-semibold">Sp. Defense</span>
-                                <span><%= pokemon.pokemon_sp_def %></span>
+                                <span>
+                                    <%= pokemon.pokemon_sp_def %>
+                                </span>
                             </div>
                             <div class="progress" style="height: 10px;">
                                 <div class="progress-bar" role="progressbar"
@@ -270,7 +280,9 @@
                         <div class="mb-3">
                             <div class="d-flex justify-content-between mb-1">
                                 <span class="fw-semibold">Speed</span>
-                                <span><%= pokemon.pokemon_speed %></span>
+                                <span>
+                                    <%= pokemon.pokemon_speed %>
+                                </span>
                             </div>
                             <div class="progress" style="height: 10px;">
                                 <div class="progress-bar" role="progressbar"
@@ -284,7 +296,9 @@
                         <div class="mb-3">
                             <div class="d-flex justify-content-between mb-1">
                                 <span class="fw-semibold">Speed</span>
-                                <span><%= pokemon.pokemon_speed %></span>
+                                <span>
+                                    <%= pokemon.pokemon_speed %>
+                                </span>
                             </div>
                             <div class="progress" style="height: 10px;">
                                 <div class="progress-bar" role="progressbar"
