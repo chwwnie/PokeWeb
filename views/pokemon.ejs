@@ -4,479 +4,463 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <% const displayPokemonName = String(pokemon.pokemon_name || '').replace(/-(male|female)$/i, ''); %>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <title>
-        <%= pokemon.pokemon_name %> - PokemonWeb
+        <%= displayPokemonName %> - PokemonWeb
     </title>
+    <style>
+        .badge {
+            font-size: 1rem;
+            padding: 0.5em 0.75em;
+        }
+
+        .progress-bar {
+            transition: width 0.5s ease-in-out;
+            background-color: #528ad4;
+        }
+
+        .shiny-button {
+            transition: transform 0.2s ease-in-out;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            top: 4px;
+        }
+
+        .shiny-button:hover {
+            transform: scale(1.3);
+        }
+
+        .pokemon-sprite-frame {
+            width: min(100%, 260px);
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+        }
+
+        .pokemon-sprite {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .evo:hover {
+            transform: scale(1.1);
+            transition: transform 0.2s ease-in-out;
+        }
+    </style>
 </head>
-<style>
-    .badge {
-        font-size: 1rem;
-        padding: 0.5em 0.75em;
-    }
-
-    .progress-bar {
-        transition: width 0.5s ease-in-out;
-        background-color: #528ad4;
-    }
-
-    .shiny-button {
-        transition: transform 0.2s ease-in-out;
-        justify-content: center;
-        align-items: center;
-    }
-
-    .shiny-button:hover {
-        transform: scale(1.3);
-        /* Scales the button up by 20% on hover */
-    }
-
-    .evo:hover {
-        transform: scale(1.1);
-        transition: transform 0.2s ease-in-out;
-
-    }
-</style>
 
 <body>
     <%- include('header') %>
 
-        <div class="container mt-5">
+    <%
+    // ---------- Forms data (default form + every alternative form) ----------
+    const alternativeForms = typeof forms !== 'undefined' ? forms.filter(f => f.form_name !== 'Default Form') : [];
+    const defaultLabel = pokemon.pokemon_default_form_name || 'Default Form';
 
-            <h3 class="text-muted text-center">
-                <small>#<%= String(pokemon.pokemon_id).padStart(3, '0' ) %></small>
-            </h3>
+    // Index 0 = default form. Forms with no stats/size/cry of their own fall back to the base Pokémon.
+    const formsData = [{
+        label: defaultLabel,
+        img: pokemon.pokemon_img,
+        shiny: pokemon.pokemon_shiny_img,
+        hp: pokemon.pokemon_hp,
+        atk: pokemon.pokemon_atk,
+        def: pokemon.pokemon_def,
+        spAtk: pokemon.pokemon_sp_atk,
+        spDef: pokemon.pokemon_sp_def,
+        speed: pokemon.pokemon_speed,
+        height: Number(pokemon.pokemon_height),
+        weight: Number(pokemon.pokemon_weight),
+        cryLatest: pokemon.pokemon_cry_latest,
+        cryLegacy: pokemon.pokemon_cry_legacy
+    }].concat(alternativeForms.map(f => ({
+        label: f.form_name,
+        img: f.form_img,
+        shiny: f.form_shiny_img,
+        hp: f.form_hp ?? pokemon.pokemon_hp,
+        atk: f.form_atk ?? pokemon.pokemon_atk,
+        def: f.form_def ?? pokemon.pokemon_def,
+        spAtk: f.form_sp_atk ?? pokemon.pokemon_sp_atk,
+        spDef: f.form_sp_def ?? pokemon.pokemon_sp_def,
+        speed: f.form_speed ?? pokemon.pokemon_speed,
+        height: Number(f.form_height ?? pokemon.pokemon_height),
+        weight: Number(f.form_weight ?? pokemon.pokemon_weight),
+        // If the form has its own cry, use ONLY its own cries (don't mix in the base Pokémon's classic cry).
+        // Only forms with no cry data at all fall back to the base Pokémon's cries.
+        cryLatest: (f.form_cry_latest || f.form_cry_legacy) ? f.form_cry_latest : pokemon.pokemon_cry_latest,
+        cryLegacy: (f.form_cry_latest || f.form_cry_legacy) ? f.form_cry_legacy : pokemon.pokemon_cry_legacy
+    })));
+    %>
 
-            <div class="text-center mb-4">
-                <h1 class="text-capitalize mb-1">
-                    <%= pokemon.pokemon_name %>
-                </h1>
+    <div class="container mt-5">
 
-                <% if (pokemon.pokemon_shiny_img) { %>
-                    <button id="shinyToggleBtn" class="shiny-button btn" onclick="toggleShiny()" title="View Shiny"
-                        style="cursor: pointer; font-size: 1.2rem; border: none;">
-                        ✨
-                    </button>
-                    <% } %>
+        <h3 class="text-muted text-center">
+            <small>#<%= String(pokemon.pokemon_id).padStart(3, '0') %></small>
+        </h3>
+
+        <div class="text-center mb-4 d-flex align-items-center justify-content-center gap-2">
+            <h1 class="text-capitalize mb-0">
+                <%= displayPokemonName %>
+            </h1>
+
+            <% if (pokemon.pokemon_shiny_img) { %>
+                <button id="shinyToggleBtn" class="shiny-button btn p-0" onclick="toggleShiny()" title="View Shiny"
+                    style="cursor: pointer; font-size: 1.3rem; border: none; background: transparent;">
+                    ✨
+                </button>
+            <% } %>
+        </div>
+
+        <% if (alternativeForms.length > 0) { %>
+            <!-- Form dropdown -->
+            <div class="dropdown mb-3 d-flex flex-column align-items-center">
+                <button class="btn btn-dark dropdown-toggle px-4 py-2 shadow-sm text-white" type="button"
+                    id="formDropdownMenu" data-bs-toggle="dropdown" aria-expanded="false"
+                    style="border-radius: 20px; background-color: #333; min-width: 220px;">
+                    <span id="currentFormLabel"><%= defaultLabel %></span>
+                </button>
+                <ul class="dropdown-menu shadow text-center mx-auto" aria-labelledby="formDropdownMenu"
+                    style="border-radius: 15px; min-width: 220px;">
+                    <li>
+                        <a class="dropdown-item text-capitalize py-2 active" href="#"
+                            onclick="switchForm(0, this); return false;">
+                            <%= defaultLabel %>
+                        </a>
+                    </li>
+                    <% alternativeForms.forEach((form, i) => { %>
+                        <li>
+                            <a class="dropdown-item text-capitalize py-2" href="#"
+                                onclick="switchForm(<%= i + 1 %>, this); return false;">
+                                <%= form.form_name %>
+                            </a>
+                        </li>
+                    <% }) %>
+                </ul>
+            </div>
+        <% } %>
+
+        <div class="d-flex flex-row align-items-center justify-content-center gap-3 my-3">
+            <!-- Left Arrow (Previous Pokémon) -->
+            <div class="col-1 text-end">
+                <a href="/pokemon/<%= pokemon.prev_id %>"
+                    class="btn btn-outline-secondary rounded-circle d-flex align-items-center justify-content-center shadow-sm"
+                    style="width: 45px; height: 45px;" title="Previous Pokémon">
+                    <i class="bi bi-chevron-left fs-5"></i>
+                </a>
             </div>
 
-            <div class="d-flex flex-row align-items-center justify-content-center gap-3 my-3">
-                <div class="col-1 text-end">
+            <div class="col-md-6 text-center">
 
-                    <a href="/pokemon/<%= pokemon.prev_id %>"
-                        class="btn btn-outline-secondary rounded-circle d-flex align-items-center justify-content-center shadow-sm"
-                        style="width: 45px; height: 45px;" title="Previous Pokémon">
-                        <i class="bi bi-chevron-left fs-5"></i>
-                    </a>
+                <% if (pokemon.pokemon_img) { %>
+                    <div class="pokemon-sprite-frame">
+                        <img id="pokemonImage" src="<%= pokemon.pokemon_img %>" alt="<%= displayPokemonName %>"
+                            class="pokemon-sprite">
+                    </div>
+                <% } else { %>
+                    <p class="text-muted">No image available</p>
+                <% } %>
 
+                <!-- Audio Player Section -->
+                <div class="text-center mt-2 mb-3">
+                    <button id="cryLatestBtn" class="btn btn-outline-primary btn-sm me-2" onclick="playCry('cryLatest')"
+                        <%= pokemon.pokemon_cry_latest ? '' : 'hidden' %>>
+                        <i class="bi bi-soundwave"></i> Latest Cry
+                    </button>
+                    <button id="cryLegacyBtn" class="btn btn-outline-primary btn-sm" onclick="playCry('cryLegacy')"
+                        <%= pokemon.pokemon_cry_legacy ? '' : 'hidden' %>>
+                        <i class="bi bi-soundwave"></i> Classic Cry
+                    </button>
                 </div>
-                <div class="col-md-6 text-center">
-                    <% if (pokemon.pokemon_img) { %>
-                        <!-- Added id="pokemonImage" back here so JS can target it -->
-                        <img id="pokemonImage" src="<%= pokemon.pokemon_img %>" alt="<%= pokemon.pokemon_name %>"
-                            class="img-fluid mb-2" style="max-height: 300px;">
-                        <% } else { %>
-                            <p class="text-muted">No image available</p>
+
+                <% const typeColors = {
+                    grass: '#9bcc50', poison: '#b97fc9', fire: '#fd7d24', water: '#4592c4', bug: '#729f3f',
+                    normal: '#a4acaf', electric: '#eed535', fairy: '#fdb9e9', fighting: '#d56723', psychic: '#f366b9',
+                    rock: '#a38c21', ghost: '#7b62a3', ice: '#51c4e7', dragon: '#53a4cf', ground: '#ab9842',
+                    steel: '#9eb7b8', dark: '#707070', flying: '#3dc7be'
+                }; %>
+
+                <p class="mb-2 text-center">
+                    <% if (pokemon.type) { %>
+                        <% const typesArray = pokemon.type.split(',').map(t => t.trim().toLowerCase()); %>
+                        <% typesArray.forEach(t => { %>
+                            <span class="badge me-1 text-white"
+                                style="background-color: <%= typeColors[t] || '#6c757d' %>;">
+                                <%= t %>
+                            </span>
+                        <% }) %>
+                    <% } else { %>
+                        <span class="text-muted">None</span>
+                    <% } %>
+                </p>
+            </div>
+
+            <!-- Right Arrow (Next Pokémon) -->
+            <div class="col-1 text-start">
+                <% if (pokemon.next_id) { %>
+                    <a href="/pokemon/<%= pokemon.next_id %>"
+                        class="btn btn-outline-secondary rounded-circle d-flex align-items-center justify-content-center shadow-sm"
+                        style="width: 45px; height: 45px;" title="Next Pokémon">
+                        <i class="bi bi-chevron-right fs-5"></i>
+                    </a>
+                <% } %>
+            </div>
+        </div>
+
+        <div class="row mt-4 text-center">
+            <div class="col">
+                <i>"<%= pokemon.pokemon_desc %>"</i>
+            </div>
+        </div>
+        <br>
+
+        <div class="row justify-content-center mt-2 stats-container">
+            <div class="col-md-8">
+                <div class="card p-5 shadow-sm">
+
+                    <!-- Height / Weight (change with the selected form) -->
+                    <div class="row text-center">
+                        <div class="col-6 border-end">
+                            <p class="mb-0 text-muted small">Height</p>
+                            <p class="mb-0 fw-bold" style="font-size: 1.2rem;">
+                                <span id="heightM"><%= pokemon.pokemon_height %></span> m
+                                <span class="text-muted fw-normal">(<span id="heightFt"><%= (pokemon.pokemon_height * 3.28084).toFixed(1) %></span> ft)</span>
+                            </p>
+                        </div>
+                        <div class="col-6">
+                            <p class="mb-0 text-muted small">Weight</p>
+                            <p class="mb-0 fw-bold" style="font-size: 1.2rem;">
+                                <span id="weightKg"><%= pokemon.pokemon_weight %></span> kg
+                                <span class="text-muted fw-normal">(<span id="weightLbs"><%= (pokemon.pokemon_weight * 2.20462).toFixed(1) %></span> lbs)</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Abilities -->
+                    <div class="row">
+                        <div class="col-12 mt-3 text-center">
+                            <p class="mb-1 text-muted small">Abilities</p>
+                            <div>
+                                <% if (pokemon.pokemon_abilities) { %>
+                                    <% let abilitiesArray = pokemon.pokemon_abilities.split(',');
+                                    abilitiesArray.sort((a, b) => {
+                                        if (a.includes('(Hidden)')) return 1;
+                                        if (b.includes('(Hidden)')) return -1;
+                                        return 0;
+                                    }); %>
+                                    <% abilitiesArray.forEach(ability => { %>
+                                        <span class="badge bg-light text-dark mb-1 px-2 py-2 text-capitalize d-block mx-auto border"
+                                            style="max-width: 180px; font-size: 0.9rem;">
+                                            <%= ability.trim() %>
+                                        </span>
+                                    <% }) %>
+                                <% } else { %>
+                                    <span class="text-muted">None</span>
+                                <% } %>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h5 class="mt-4 mb-2">Base Stats</h5>
+
+                    <!-- Base stats (change with the selected form) -->
+                    <% [['hp', 'HP'], ['atk', 'Attack'], ['def', 'Defense'], ['spAtk', 'Sp. Attack'], ['spDef', 'Sp. Defense'], ['speed', 'Speed']].forEach(([key, label]) => {
+                        const val = formsData[0][key]; %>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="fw-semibold"><%= label %></span>
+                                <span id="statVal-<%= key %>"><%= val %></span>
+                            </div>
+                            <div class="progress" style="height: 10px;">
+                                <div id="statBar-<%= key %>" class="progress-bar" role="progressbar"
+                                    style="width: 0%; transition: width 1s cubic-bezier(0.1, 1, 0.1, 1);"
+                                    data-target-width="<%= (val / 255) * 100 %>%">
+                                </div>
+                            </div>
+                        </div>
+                    <% }) %>
+
+                    <!-- Evolution Line Section -->
+                    <hr class="my-4">
+                    <div class="text-center mt-2">
+                        <p class="mb-4 fw-semibold" style="font-size: 1.4rem;">Evolution Line</p>
+
+                        <div class="d-flex align-items-center justify-content-center gap-3 flex-wrap">
+                            <% if (pokemon.evolved_from_name) { %>
+                                <a href="/pokemon/<%= pokemon.evolved_from_id %>" class="text-decoration-none">
+                                    <div class="evo d-flex flex-column align-items-center">
+                                        <div class="rounded-circle bg-light border shadow-sm overflow-hidden d-flex align-items-center justify-content-center mb-1"
+                                            style="width: 85px; height: 85px;">
+                                            <% if (pokemon.evolved_from_img) { %>
+                                                <img src="<%= pokemon.evolved_from_img %>"
+                                                    alt="<%= String(pokemon.evolved_from_name).replace(/-(male|female)$/i, '') %>"
+                                                    style="width: 65px; height: 65px; object-fit: contain;">
+                                            <% } %>
+                                        </div>
+                                        <span class="badge bg-secondary text-capitalize px-2 py-1"
+                                            style="font-size: 0.75rem;">
+                                            <%= String(pokemon.evolved_from_name).replace(/-(male|female)$/i, '') %>
+                                        </span>
+                                    </div>
+                                </a>
+                                <span class="text-muted fw-bold">→</span>
                             <% } %>
 
-                                <!-- Audio Player Section -->
-                                <div class="text-center mt-2 mb-3">
-                                    <% if (pokemon.pokemon_cry_latest) { %>
-                                        <button class="btn btn-outline-primary btn-sm me-2"
-                                            onclick="playCry('<%= pokemon.pokemon_cry_latest %>')">
-                                            <i class="bi bi-soundwave"></i> Latest Cry
-                                        </button>
-                                        <% } %>
-
-                                            <% if (pokemon.pokemon_cry_legacy) { %>
-                                                <button class="btn btn-outline-primary btn-sm"
-                                                    onclick="playCry('<%= pokemon.pokemon_cry_legacy %>')">
-                                                    <i class="bi bi-soundwave"></i> Classic Cry
-                                                </button>
-                                                <% } %>
-                                </div>
-
-                                <% const typeColors={ grass: '#9bcc50' , poison: '#b97fc9' , fire: '#fd7d24' ,
-                                    water: '#4592c4' , bug: '#729f3f' , normal: '#a4acaf' , electric: '#eed535' ,
-                                    fairy: '#fdb9e9' , fighting: '#d56723' , psychic: '#f366b9' , rock: '#a38c21' ,
-                                    ghost: '#7b62a3' , ice: '#51c4e7' , dragon: '#53a4cf' , ground: '#ab9842' ,
-                                    steel: '#9eb7b8' , dark: '#707070' , flying: '#3dc7be' }; %>
-
-                                    <p class="mb-2 text-center">
-                                        <% if (pokemon.type) { %>
-                                            <% const typesArray=pokemon.type.split(',').map(t=>
-                                                t.trim().toLowerCase());
-                                                %>
-                                                <% typesArray.forEach(t=> { %>
-                                                    <span class="badge me-1 text-white"
-                                                        style="background-color: <%= typeColors[t] || '#6c757d' %>;">
-                                                        <%= t %>
-                                                    </span>
-                                                    <% }) %>
-                                                        <% } else { %>
-                                                            <span class="text-muted">None</span>
-                                                            <% } %>
-                                    </p>
-
-                </div>
-                <!-- Right Arrow (Next Pokémon) -->
-                <div class="col-1 text-start">
-                    <% if (pokemon.next_id) { %>
-                        <a href="/pokemon/<%= pokemon.next_id %>"
-                            class="btn btn-outline-secondary rounded-circle d-flex align-items-center justify-content-center shadow-sm"
-                            style="width: 45px; height: 45px;" title="Next Pokémon">
-                            <i class="bi bi-chevron-right fs-5"></i>
-                        </a>
-                        <% } %>
-                </div>
-            </div>
-
-            <div class="row mt-4 text-center">
-                <div class="col">
-                    <i>
-                        "<%= pokemon.pokemon_desc %>"
-                    </i>
-                </div>
-            </div>
-            <br>
-
-            <div class="row justify-content-center mt-2 stats-container">
-                <div class="col-md-8">
-                    <div class="card p-5 shadow-sm">
-                        <div class="row text-center">
-                            <div class="col-6 border-end">
-                                <p class="mb-0 text-muted small">Height</p>
-                                <p class="mb-0 fw-bold" style="font-size: 1.2rem;">
-                                    <%= pokemon.pokemon_height %> m
-                                        <span class="text-muted fw-normal">(<%= (pokemon.pokemon_height *
-                                                3.28084).toFixed(1) %> ft)</span>
-                                </p>
-                            </div>
-                            <div class="col-6">
-                                <p class="mb-0 text-muted small">Weight</p>
-                                <p class="mb-0 fw-bold" style="font-size: 1.2rem;">
-                                    <%= pokemon.pokemon_weight %> kg
-                                        <span class="text-muted fw-normal">(<%= (pokemon.pokemon_weight *
-                                                2.20462).toFixed(1) %> lbs)</span>
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-12 mt-3 text-center">
-                                <p class="mb-1 text-muted small">Abilities</p>
-                                <div>
-                                    <% if (pokemon.pokemon_abilities) { %>
-                                        <% let abilitiesArray=pokemon.pokemon_abilities.split(',');
-                                            abilitiesArray.sort((a, b)=> {
-                                            if (a.includes('(Hidden)')) return 1;
-                                            if (b.includes('(Hidden)')) return -1;
-                                            return 0;
-                                            });
-                                            %>
-                                            <% abilitiesArray.forEach(ability=> { %>
-                                                <span
-                                                    class="badge bg-light text-dark mb-1 px-2 py-2 text-capitalize d-block mx-auto border"
-                                                    style="max-width: 180px; font-size: 0.9rem;">
-                                                    <%= ability.trim() %>
-                                                </span>
-                                                <% }) %>
-                                                    <% } else { %>
-                                                        <span class="text-muted">None</span>
-                                                        <% } %>
-                                </div>
-                            </div>
-                        </div>
-
-                        <h5 class="mt-4 mb-2">Base Stats</h5>
-
-                        <!-- HP Stat -->
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between mb-1">
-                                <span class="fw-semibold">HP</span>
-                                <!-- Added class="counter" and data-target attribute -->
-                                <span>
-                                    <%= pokemon.pokemon_hp %>
-                                </span>
-                            </div>
-                            <div class="progress" style="height: 10px;">
-                                <!-- Fixed pokemon.hp to pokemon.pokemon_hp -->
-                                <div class="progress-bar" role="progressbar"
-                                    style="width: 0%; transition: width 1s cubic-bezier(0.1, 1, 0.1, 1);"
-                                    data-target-width="<%= (pokemon.pokemon_hp / 255) * 100 %>%">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Attack Stat -->
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between mb-1">
-                                <span class="fw-semibold">Attack</span>
-                                <!-- Added class="counter" and data-target attribute -->
-                                <span>
-                                    <%= pokemon.pokemon_atk %>
-                                </span>
-                            </div>
-                            <div class="progress" style="height: 10px;">
-                                <!-- Fixed pokemon.atk to pokemon.pokemon_atk -->
-                                <div class="progress-bar" role="progressbar"
-                                    style="width: 0%; transition: width 1s cubic-bezier(0.1, 1, 0.1, 1);"
-                                    data-target-width="<%= (pokemon.pokemon_atk / 255) * 100 %>%">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Defense Stat -->
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between mb-1">
-                                <span class="fw-semibold">Defense</span>
-                                <span>
-                                    <%= pokemon.pokemon_def %>
-                                </span>
-                            </div>
-                            <div class="progress" style="height: 10px;">
-                                <div class="progress-bar" role="progressbar"
-                                    style="width: 0%; transition: width 1s cubic-bezier(0.1, 1, 0.1, 1);"
-                                    data-target-width="<%= (pokemon.pokemon_def / 255) * 100 %>%">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Sp. Attack Stat -->
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between mb-1">
-                                <span class="fw-semibold">Sp. Attack</span>
-                                <span>
-                                    <%= pokemon.pokemon_sp_atk %>
-                                </span>
-                            </div>
-                            <div class="progress" style="height: 10px;">
-                                <div class="progress-bar" role="progressbar"
-                                    style="width: 0%; transition: width 1s cubic-bezier(0.1, 1, 0.1, 1);"
-                                    data-target-width="<%= (pokemon.pokemon_sp_atk / 255) * 100 %>%">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Sp. Defense Stat -->
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between mb-1">
-                                <span class="fw-semibold">Sp. Defense</span>
-                                <span>
-                                    <%= pokemon.pokemon_sp_def %>
-                                </span>
-                            </div>
-                            <div class="progress" style="height: 10px;">
-                                <div class="progress-bar" role="progressbar"
-                                    style="width: 0%; transition: width 1s cubic-bezier(0.1, 1, 0.1, 1);"
-                                    data-target-width="<%= (pokemon.pokemon_sp_def / 255) * 100 %>%">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Speed Stat -->
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between mb-1">
-                                <span class="fw-semibold">Speed</span>
-                                <span>
-                                    <%= pokemon.pokemon_speed %>
-                                </span>
-                            </div>
-                            <div class="progress" style="height: 10px;">
-                                <div class="progress-bar" role="progressbar"
-                                    style="width: 0%; transition: width 1s cubic-bezier(0.1, 1, 0.1, 1);"
-                                    data-target-width="<%= (pokemon.pokemon_speed / 255) * 100 %>%">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Speed Stat -->
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between mb-1">
-                                <span class="fw-semibold">Speed</span>
-                                <span>
-                                    <%= pokemon.pokemon_speed %>
-                                </span>
-                            </div>
-                            <div class="progress" style="height: 10px;">
-                                <div class="progress-bar" role="progressbar"
-                                    style="width: 0%; transition: width 1s cubic-bezier(0.1, 1, 0.1, 1);"
-                                    data-target-width="<%= (pokemon.pokemon_speed / 255) * 100 %>%">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Evolution Section -->
-                        <!-- Evolution Line Section -->
-                        <hr class="my-4">
-                        <div class="text-center mt-2">
-                            <p class="mb-4 fw-semibold" style="font-size: 1.4rem;">Evolution Line</p>
-
-
-                            <div class="d-flex align-items-center justify-content-center gap-3 flex-wrap">
-
-                                <!-- 1. Pre-Evolution (If exists) -->
-                                <% if (pokemon.evolved_from_name) { %>
-                                    <a href="/pokemon/<%= pokemon.evolved_from_id %>" class="text-decoration-none">
-                                        <div class=" evo d-flex flex-column align-items-center">
-                                            <div class="rounded-circle bg-light border shadow-sm overflow-hidden d-flex align-items-center justify-content-center mb-1"
-                                                style="width: 85px; height: 85px;">
-                                                <% if (pokemon.evolved_from_img) { %>
-                                                    <img src="<%= pokemon.evolved_from_img %>"
-                                                        alt="<%= pokemon.evolved_from_name %>"
-                                                        style="width: 65px; height: 65px; object-fit: contain;">
-                                                    <% } %>
-                                            </div>
-                                            <span class="badge bg-secondary text-capitalize px-2 py-1"
-                                                style="font-size: 0.75rem;">
-                                                <%= pokemon.evolved_from_name %>
-                                            </span>
-                                        </div>
-                                    </a>
-                                    <span class="text-muted fw-bold">→</span>
+                            <div class="d-flex flex-column align-items-center">
+                                <div class="rounded-circle bg-white border border-primary border-3 shadow overflow-hidden d-flex align-items-center justify-content-center mb-1"
+                                    style="width: 95px; height: 95px;">
+                                    <% if (pokemon.pokemon_img) { %>
+                                        <img src="<%= pokemon.pokemon_img %>" alt="<%= displayPokemonName %>"
+                                            style="width: 75px; height: 75px; object-fit: contain;">
                                     <% } %>
-
-                                        <!-- 2. Current Pokémon (Highlighted) -->
-                                        <div class="d-flex flex-column align-items-center">
-                                            <div class="rounded-circle bg-white border border-primary border-3 shadow overflow-hidden d-flex align-items-center justify-content-center mb-1"
-                                                style="width: 95px; height: 95px;">
-                                                <% if (pokemon.pokemon_img) { %>
-                                                    <img src="<%= pokemon.pokemon_img %>"
-                                                        alt="<%= pokemon.pokemon_name %>"
-                                                        style="width: 75px; height: 75px; object-fit: contain;">
-                                                    <% } %>
-                                            </div>
-                                            <span class="badge bg-primary text-capitalize px-2 py-1"
-                                                style="font-size: 0.8rem;">
-                                                <%= pokemon.pokemon_name %>
-                                            </span>
-                                        </div>
-
-                                        <!-- 3. Next Evolutions (Loops through all branching paths if any exist) -->
-                                        <% if (pokemon.evolves_to_names) { %>
-                                            <span class="text-muted fw-bold">→</span>
-                                            <div class="d-flex flex-row gap-3 flex-wrap justify-content-center">
-                                                <% const nextIds=pokemon.evolves_to_ids.split(','); const
-                                                    nextNames=pokemon.evolves_to_names.split(','); const
-                                                    nextImgs=pokemon.evolves_to_imgs.split(','); for (let i=0; i <
-                                                    nextNames.length; i++) { %>
-                                                    <a href="/pokemon/<%= nextIds[i] %>" class="text-decoration-none">
-                                                        <div class="evo d-flex flex-column align-items-center">
-                                                            <div class="rounded-circle bg-light border shadow-sm overflow-hidden d-flex align-items-center justify-content-center mb-1"
-                                                                style="width: 85px; height: 85px;">
-                                                                <% if (nextImgs[i]) { %>
-                                                                    <img src="<%= nextImgs[i] %>"
-                                                                        alt="<%= nextNames[i] %>"
-                                                                        style="width: 65px; height: 65px; object-fit: contain;">
-                                                                    <% } %>
-                                                            </div>
-                                                            <span class="badge bg-secondary text-capitalize px-2 py-1"
-                                                                style="font-size: 0.75rem;">
-                                                                <%= nextNames[i] %>
-                                                            </span>
-                                                        </div>
-                                                    </a>
-                                                    <% } %>
-                                            </div>
-                                            <% } %>
-
+                                </div>
+                                <span class="badge bg-primary text-capitalize px-2 py-1" style="font-size: 0.8rem;">
+                                    <%= displayPokemonName %>
+                                </span>
                             </div>
+
+                            <% if (pokemon.evolves_to_names) { %>
+                                <span class="text-muted fw-bold">→</span>
+                                <div class="d-flex flex-row gap-3 flex-wrap justify-content-center">
+                                    <% const nextIds = pokemon.evolves_to_ids.split(',');
+                                    const nextNames = pokemon.evolves_to_names.split(',');
+                                    const nextImgs = pokemon.evolves_to_imgs.split(',');
+                                    for (let i = 0; i < nextNames.length; i++) { %>
+                                        <% const displayNextName = nextNames[i].replace(/-(male|female)$/i, ''); %>
+                                        <a href="/pokemon/<%= nextIds[i] %>" class="text-decoration-none">
+                                            <div class="evo d-flex flex-column align-items-center">
+                                                <div class="rounded-circle bg-light border shadow-sm overflow-hidden d-flex align-items-center justify-content-center mb-1"
+                                                    style="width: 85px; height: 85px;">
+                                                    <% if (nextImgs[i]) { %>
+                                                        <img src="<%= nextImgs[i] %>" alt="<%= displayNextName %>"
+                                                            style="width: 65px; height: 65px; object-fit: contain;">
+                                                    <% } %>
+                                                </div>
+                                                <span class="badge bg-secondary text-capitalize px-2 py-1"
+                                                    style="font-size: 0.75rem;">
+                                                    <%= displayNextName %>
+                                                </span>
+                                            </div>
+                                        </a>
+                                    <% } %>
+                                </div>
+                            <% } %>
                         </div>
                     </div>
-                    <div class="text-center mt-5">
-                        <a href="/pokedex" class="btn btn-outline-secondary" style="font-size: 1.2rem;">Back to
-                            Pokedéx</a>
-                    </div>
-
-                    <footer class="small text-center text-muted mt-4 mb-5">
-                        <p>Pokémon data sourced from <a href="https://pokeapi.co/" target="_blank">PokéAPI</a>.<br>All
-                            rights belong to Nintendo.</p>
-                    </footer>
                 </div>
+
+                <div class="text-center mt-5">
+                    <a href="/pokedex" class="btn btn-outline-secondary" style="font-size: 1.2rem;">Back to Pokedéx</a>
+                </div>
+
+                <footer class="small text-center text-muted mt-4 mb-5">
+                    <p>Pokémon data sourced from <a href="https://pokeapi.co/" target="_blank">PokéAPI</a>.<br>All
+                        rights belong to Nintendo.</p>
+                </footer>
             </div>
+        </div>
+    </div>
 
-            <!-- Client-side JavaScript functionality -->
-            <script>
-                // Audio playback handler
-                function playCry(url) {
-                    const audio = new Audio(url);
-                    audio.play().catch(err => console.log("Audio playback blocked or failed:", err));
-                }
+    <script>
+        // One entry per form: index 0 = default form, then each alternative form in dropdown order
+        const formsData = <%- JSON.stringify(formsData).replace(/</g, '\\u003c') %>;
+        const statKeys = ['hp', 'atk', 'def', 'spAtk', 'spDef', 'speed'];
 
-                // Shiny image toggle handler
-                let isShiny = false;
-                const normalImg = "<%= pokemon.pokemon_img %>";
-                const shinyImg = "<%= pokemon.pokemon_shiny_img %>";
+        let currentIndex = 0;
+        let isShiny = false;
+        let normalImg = formsData[0].img;
+        let shinyImg = formsData[0].shiny;
 
-                function toggleShiny() {
-                    const imgElement = document.getElementById('pokemonImage');
-                    const btnElement = document.getElementById('shinyToggleBtn');
+        function playCry(key) {
+            const url = formsData[currentIndex][key];
+            if (!url) return;
+            new Audio(url).play().catch(err => console.log("Audio playback blocked or failed:", err));
+        }
 
-                    isShiny = !isShiny;
-                    if (isShiny) {
-                        imgElement.src = shinyImg;
-                        btnElement.classList.replace('btn-outline-warning', 'btn-warning');
-                    } else {
-                        imgElement.src = normalImg;
-                        btnElement.classList.replace('btn-warning', 'btn-outline-warning');
-                    }
-                }
-            </script>
-            <script>
-                document.addEventListener('DOMContentLoaded', () => {
-                    const statsSection = document.querySelector('.stats-container');
+        function switchForm(index, element) {
+            const f = formsData[index];
+            currentIndex = index;
+            normalImg = f.img;
+            shinyImg = f.shiny;
+            isShiny = false; // Reset shiny state on form change
 
-                    if (!statsSection) return;
+            document.getElementById('pokemonImage').src = normalImg;
 
-                    // Configure the observer
-                    const observerOptions = {
-                        root: null, // Uses the browser viewport
-                        threshold: 0.4 // Triggers when 40% of the stats section becomes visible
-                    };
+            const labelElement = document.getElementById('currentFormLabel');
+            if (labelElement) labelElement.textContent = f.label;
 
-                    const observer = new IntersectionObserver((entries, observerInstance) => {
-                        entries.forEach(entry => {
-                            if (entry.isIntersecting) {
-                                // 1. Animate Progress Bars
-                                document.querySelectorAll('.progress-bar').forEach(bar => {
-                                    bar.style.width = bar.getAttribute('data-target-width');
-                                });
+            const shinyBtn = document.getElementById('shinyToggleBtn');
+            if (shinyBtn) shinyBtn.classList.replace('btn-warning', 'btn-outline-warning');
 
-                                // 2. Animate Stat Number Count-Up
-                                document.querySelectorAll('.counter').forEach(counter => {
-                                    const target = +counter.getAttribute('data-target');
-                                    const duration = 1000; // 1 second
-                                    const startTime = performance.now();
+            // Stats: reset every bar to 0 and animate it up to the new value again
+            statKeys.forEach(k => {
+                document.getElementById('statVal-' + k).textContent = f[k];
+                const bar = document.getElementById('statBar-' + k);
+                const pct = (f[k] / 255) * 100 + '%';
+                bar.setAttribute('data-target-width', pct);
 
-                                    function updateCount(currentTime) {
-                                        const elapsed = currentTime - startTime;
-                                        const progress = Math.min(elapsed / duration, 1);
-                                        const easeProgress = 1 - Math.pow(1 - progress, 3);
+                bar.style.transition = 'none';   // jump back to 0 instantly
+                bar.style.width = '0%';
+                void bar.offsetWidth;            // force the browser to apply it before animating
+                bar.style.transition = 'width 1s cubic-bezier(0.1, 1, 0.1, 1)';
+                bar.style.width = pct;           // animate up to the new value
+            });
 
-                                        counter.textContent = Math.floor(easeProgress * target);
+            // Height / weight
+            document.getElementById('heightM').textContent = f.height;
+            document.getElementById('heightFt').textContent = (f.height * 3.28084).toFixed(1);
+            document.getElementById('weightKg').textContent = f.weight;
+            document.getElementById('weightLbs').textContent = (f.weight * 2.20462).toFixed(1);
 
-                                        if (progress < 1) {
-                                            requestAnimationFrame(updateCount);
-                                        } else {
-                                            counter.textContent = target;
-                                        }
-                                    }
+            // Cries
+            document.getElementById('cryLatestBtn').hidden = !f.cryLatest;
+            document.getElementById('cryLegacyBtn').hidden = !f.cryLegacy;
 
-                                    requestAnimationFrame(updateCount);
-                                });
+            // Active dropdown item styling
+            document.querySelectorAll('.dropdown-menu .dropdown-item').forEach(item => item.classList.remove('active'));
+            if (element) element.classList.add('active');
+        }
 
-                                // Stop observing once the animation has been triggered
-                                observerInstance.unobserve(entry.target);
-                            }
+        function toggleShiny() {
+            const imgElement = document.getElementById('pokemonImage');
+            const btnElement = document.getElementById('shinyToggleBtn');
+
+            isShiny = !isShiny;
+            if (isShiny) {
+                imgElement.src = shinyImg;
+                btnElement.classList.replace('btn-outline-warning', 'btn-warning');
+            } else {
+                imgElement.src = normalImg;
+                btnElement.classList.replace('btn-warning', 'btn-outline-warning');
+            }
+        }
+    </script>
+
+    <script>
+        // Animate the stat bars when the stats card scrolls into view
+        document.addEventListener('DOMContentLoaded', () => {
+            const statsSection = document.querySelector('.stats-container');
+            if (!statsSection) return;
+
+            const observer = new IntersectionObserver((entries, observerInstance) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        document.querySelectorAll('.progress-bar').forEach(bar => {
+                            bar.style.width = bar.getAttribute('data-target-width');
                         });
-                    }, observerOptions);
-
-                    // Start observing the stats container
-                    observer.observe(statsSection);
+                        observerInstance.unobserve(entry.target);
+                    }
                 });
-            </script>
+            }, { root: null, threshold: 0.4 });
+
+            observer.observe(statsSection);
+        });
+    </script>
 </body>
 
 </html>

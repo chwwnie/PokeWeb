@@ -188,14 +188,15 @@
                                         </div>
 
                                         <% if (pokemon.image) { %>
-                                            <img src="<%= pokemon.image %>" alt="<%= pokemon.name %>"
+                                            <img src="<%= pokemon.image %>"
+                                                alt="<%= pokemon.name.replace(/-(male|female)$/i, '') %>"
                                                 class="img-fluid mx-auto mb-2" style="max-height: 120px;">
                                             <% } else { %>
                                                 <p class="text-muted">No image available</p>
                                                 <% } %>
 
                                                     <h5 class="mb-1 mt-2 card-title text-capitalize">
-                                                        <%= pokemon.name %>
+                                                        <%= pokemon.name.replace(/-(male|female)$/i, '') %>
                                                     </h5>
 
                                                     <% // Map standard Pokémon types to their colors const const

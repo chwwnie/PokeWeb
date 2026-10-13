@@ -4,6 +4,7 @@ const session = require('express-session');
 const flash = require('connect-flash');
 const multer = require('multer');
 const app = express();
+const router = express.Router();
 const port = 3000;
 
 // Create a connection to the database
@@ -22,30 +23,27 @@ db.connect((err) => {
 });
 
 app.use(express.urlencoded({ extended: false }));
-app.use(express.json()); // Added to parse JSON bodies if your frontend sends them
+app.use(express.json());
 app.use(express.static('public'));
 
 app.use(session({
   secret: 'secret',
   resave: false,
   saveUninitialized: true,
-  cookie: { maxAge: 1000 * 60 * 60 * 24 * 180 } // 6 months
+  cookie: { maxAge: 1000 * 60 * 60 * 24 * 180 }
 }));
 
 app.use(flash());
 
 app.set('view engine', 'ejs');
 
-// View pokemon
-// View pokemon webpage
-// View pokemon webpage with optional generation filter
+// Pokedex route with search, filters, and pagination
 app.get('/pokedex', (req, res) => {
   const searchPokemon = req.query.search;
-  const typeFilter = req.query.types; // Supports array or single value from checkboxes
-  const generationFilter = req.query.generations; // Supports array or single value
+  const typeFilter = req.query.types;
+  const generationFilter = req.query.generations;
   const sortBy = req.query.sort || 'asc';
 
-  // Pagination variables
   const limit = 12;
   const page = parseInt(req.query.page) || 1;
   const offset = (page - 1) * limit;
@@ -76,7 +74,6 @@ app.get('/pokedex', (req, res) => {
     params.push(...typesArray);
   }
 
-  // 1. Get total count for pagination
   const countSql = `SELECT COUNT(DISTINCT p.pokemon_id) AS total ${baseSql}`;
 
   db.query(countSql, params, (err, countResult) => {
@@ -88,7 +85,6 @@ app.get('/pokedex', (req, res) => {
     const totalPokemons = countResult[0].total;
     const totalPages = Math.ceil(totalPokemons / limit);
 
-    // 2. Fetch paginated data using the exact same baseSql and filters
     let dataSql = `SELECT 
         p.pokemon_id AS id, 
         p.pokemon_img AS image, 
@@ -108,7 +104,6 @@ app.get('/pokedex', (req, res) => {
       dataSql += ` ORDER BY p.pokemon_id ASC`;
     }
 
-    // Safely interpolate LIMIT and OFFSET integers
     dataSql += ` LIMIT ${limit} OFFSET ${offset}`;
 
     db.query(dataSql, params, (err, rows) => {
@@ -131,8 +126,35 @@ app.get('/pokedex', (req, res) => {
   });
 });
 
-// close-up on pokemon
-// Route to view single Pokémon details
+router.get('/pokemon/:id', (req, res) => {
+    const pokemonId = req.params.id;
+    const limit = 12; // Match the number of items you display per page in your Pokedex list
+
+    // Query to find the Pokémon's index position relative to all ordered Pokémon
+    const positionQuery = `
+        SELECT COUNT(*) as row_num 
+        FROM pokemons 
+        WHERE pokemon_id <= ?
+    `;
+
+    db.query(positionQuery, [pokemonId], (err, results) => {
+        let returnPage = 1;
+        if (!err && results.length > 0) {
+            const rowIndex = results[0].row_num;
+            returnPage = Math.ceil(rowIndex / limit);
+        }
+
+        // Fetch your normal Pokémon details...
+        db.query(`SELECT * FROM pokemons WHERE pokemon_id = ?`, [pokemonId], (err, pokemonRows) => {
+            res.render('pokemon-detail', {
+                pokemon: pokemonRows[0],
+                returnPage: returnPage // Pass the calculated page back to EJS
+            });
+        });
+    });
+});
+
+// Single Pokémon Detail Route (Merged & Corrected with Types, Abilities, Evolutions, and Forms)
 app.get('/pokemon/:id', (req, res) => {
   const pokemonId = req.params.id;
 
@@ -165,14 +187,26 @@ app.get('/pokemon/:id', (req, res) => {
       GROUP BY p.pokemon_id
   `;
 
-  db.query(query, [pokemonId], (err, results) => {
-    if (err || results.length === 0) {
+  db.query(query, [pokemonId], (err, pokemonRows) => {
+    if (err || pokemonRows.length === 0) {
       console.error(err);
       return res.status(404).send('Pokémon not found');
     }
-    res.render('pokemon', { pokemon: results[0] });
+
+    db.query(`SELECT * FROM pokemon_forms WHERE pokemon_id = ? ORDER BY form_name`, [pokemonId], (err, formRows) => {
+      if (err) {
+        console.error('Failed to load Pokémon forms:', err);
+        return res.status(500).send('Unable to load Pokémon forms');
+      }
+
+      res.render('pokemon', {
+        pokemon: pokemonRows[0],
+        forms: formRows
+      });
+    });
   });
 });
+
 app.listen(3000, () => {
   console.log(`Server is running on port http://localhost:3000/pokedex`);
 });
