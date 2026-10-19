@@ -207,6 +207,14 @@ app.get('/pokemon/:id', (req, res) => {
   });
 });
 
+app.get('/pokemonQuiz', (req, res) => {
+  res.render('pokemonQuiz');
+});
+
+app.post('/pokemonQuiz', (req, res) => {
+  res.render('pokemonQuiz');
+});
+
 app.listen(3000, () => {
   console.log(`Server is running on port http://localhost:3000/pokedex`);
 });
