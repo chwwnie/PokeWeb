@@ -6,8 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <link rel="stylesheet"
-        href="[https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css](https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css)">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <title>Pokemons - PokeWeb</title>
 </head>
 <style>
@@ -49,9 +48,20 @@
         let searchTimeout;
 
         if (searchInput && filterForm) {
+            // If the last reload came from typing, give focus back and put the cursor at the end
+            if (sessionStorage.getItem('refocusSearch') === '1') {
+                sessionStorage.removeItem('refocusSearch');
+                searchInput.focus();
+                const end = searchInput.value.length;
+                searchInput.setSelectionRange(end, end);
+            }
+
             searchInput.addEventListener('input', () => {
                 clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(() => filterForm.requestSubmit(), 350);
+                searchTimeout = setTimeout(() => {
+                    sessionStorage.setItem('refocusSearch', '1');
+                    filterForm.requestSubmit();
+                }, 500);
             });
         }
 
@@ -70,207 +80,224 @@
 
 <body>
     <%- include('header') %>
-        <div class="container mt-5">
-            <h1 class="mb-5 text-center">Pokédex</h1>
-            <!-- Centered Search and Filter Bar -->
-            <div class="row justify-content-center mb-4">
-                <div class="col-md-8 position-relative">
-                    <form action="/pokedex" method="GET">
+        <% // Rebuilds the current query string, optionally overriding some values. 
+            // Handles repeated params like types=grass&types=fire correctly. 
+            const buildQuery=(overrides={})=> {
+            const params = new URLSearchParams();
+            const merged = { ...(typeof queryParams !== 'undefined' ? queryParams : {}), ...overrides };
+            Object.entries(merged).forEach(([key, value]) => {
+            if (value === undefined || value === null || value === '') return;
+            (Array.isArray(value) ? value : [value]).forEach(v => params.append(key, v));
+            });
+            return params.toString();
+            };
+        %>
 
-                        <!-- Top Search Bar & Filter Toggle Row -->
-                        <div class="d-flex justify-content-center align-items-center">
-                            <input type="text" name="search" class="form-control shadow-sm"
-                                placeholder="Search Pokémon..."
-                                value="<%= typeof searchPokemon !== 'undefined' ? searchPokemon : '' %>">
+            <div class="container mt-5">
+                <h1 class="mb-5 text-center">Pokédex</h1>
+                <!-- Centered Search and Filter Bar -->
+                <div class="row justify-content-center mb-4">
+                    <div class="col-md-8 position-relative">
+                        <form action="/pokedex" method="GET">
 
-                            <button class="btn btn-outline-primary ms-2 shadow-sm" type="button"
-                                data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false"
-                                aria-controls="filterCollapse">
-                                <i class="bi bi-filter"></i> Filter
-                            </button>
+                            <!-- Top Search Bar & Filter Toggle Row -->
+                            <div class="d-flex justify-content-center align-items-center">
+                                <input type="text" name="search" class="form-control shadow-sm"
+                                    placeholder="Search Pokémon..."
+                                    value="<%= typeof searchPokemon !== 'undefined' ? searchPokemon : '' %>">
 
-                            <!-- Compact Reverse Button using ⇅ -->
-                            <a href="/pokedex?sort=<%= typeof currentSortQuery !== 'undefined' && currentSortQuery === 'asc' ? 'desc' : 'asc' %>"
-                                class="ms-3 text-muted text-decoration-none" style="font-size: 1.3rem;">
-                                ⇅
-                            </a>
+                                <button class="btn btn-outline-primary ms-2 shadow-sm" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false"
+                                    aria-controls="filterCollapse">
+                                    <i class="bi bi-filter"></i>
+                                </button>
 
-                            <!-- Reset Button (Only shows up when a search or filter is active, or kept always visible) -->
-                            <a href="/pokedex" class="ms-3 text-muted text-decoration-none" title="Clear Filters"
-                                style="font-size: 1.3rem;">
-                                ⟳
-                            </a>
-                        </div>
+                                <!-- Compact Reverse Button using ⇅ -->
+                                <a href="/pokedex?<%= buildQuery({ sort: currentSortQuery === 'asc' ? 'desc' : 'asc', page: undefined }) %>"
+                                    class="ms-3 text-muted text-decoration-none" style="font-size: 1.3rem;">
+                                    ⇅
+                                </a>
 
-                        <!-- Collapsible Filter Panel -->
-                        <div class="collapse mt-2 position-absolute start-0 end-0 shadow-lg" id="filterCollapse"
-                            style="z-index: 1000;">
-                            <div class="card card-body bg-white border">
+                                <!-- Reset Button (Only shows up when a search or filter is active, or kept always visible) -->
+                                <a href="/pokedex" class="ms-3 text-muted text-decoration-none" title="Clear Filters"
+                                    style="font-size: 1.3rem;">
+                                    ⟳
+                                </a>
+                            </div>
 
-                                <!-- Added wrapper row so the two columns sit side-by-side -->
-                                <div class="row">
+                            <!-- Collapsible Filter Panel -->
+                            <div class="collapse mt-2 position-absolute start-0 end-0 shadow-lg" id="filterCollapse"
+                                style="z-index: 1000;">
+                                <div class="card card-body bg-white border">
 
-                                    <!-- Generation Checkboxes -->
-                                    <div class="col-md-6 mb-2 border-end">
-                                        <h6 class="fw-bold text-secondary">Generations</h6>
-                                        <div class="row g-1">
-                                            <% // Array of region names indexed by generation number (1 to 9) const
-                                                regions=['', 'Kanto' , 'Johto' , 'Hoenn' , 'Sinnoh' , 'Unova' , 'Kalos'
-                                                , 'Alola' , 'Galar' , 'Paldea' ]; %>
-                                                <% for(let i=1; i <=9; i++) { %>
-                                                    <div class="col-4">
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="checkbox"
-                                                                name="generations" value="<%= i %>" id="gen<%= i %>"
-                                                                <%=typeof selectedGens !=='undefined' &&
-                                                                selectedGens.includes(String(i)) ? 'checked' : '' %>>
-                                                            <label class="form-check-label small" for="gen<%= i %>">Gen
-                                                                <%= i %> (<%= regions[i] %>)
-                                                            </label>
-                                                        </div>
-                                                    </div>
-                                                    <% } %>
-                                        </div>
-                                    </div>
+                                    <!-- Added wrapper row so the two columns sit side-by-side -->
+                                    <div class="row">
 
-                                    <!-- Type Checkboxes -->
-                                    <div class="col-md-6 mb-2">
-                                        <h6 class="fw-bold text-secondary">Types</h6>
-                                        <div style="max-height: 160px; overflow-y: auto;" class="pe-2">
-                                            <% const allTypes=['grass', 'poison' , 'fire' , 'water' , 'bug' , 'normal'
-                                                , 'electric' , 'fairy' , 'fighting' , 'psychic' , 'rock' , 'ghost'
-                                                , 'ice' , 'dragon' , 'ground' , 'steel' , 'dark' , 'flying' ]; %>
-                                                <div class="row g-1">
-                                                    <% allTypes.forEach(t=> { %>
-                                                        <div class="col-6">
+                                        <!-- Generation Checkboxes -->
+                                        <div class="col-md-6 mb-2 border-end">
+                                            <h6 class="fw-bold text-secondary">Generations</h6>
+                                            <div class="row g-1">
+                                                <% // Array of region names indexed by generation number (1 to 9) const
+                                                    regions=['', 'Kanto' , 'Johto' , 'Hoenn' , 'Sinnoh' , 'Unova'
+                                                    , 'Kalos' , 'Alola' , 'Galar' , 'Paldea' ]; %>
+                                                    <% for(let i=1; i <=9; i++) { %>
+                                                        <div class="col-4">
                                                             <div class="form-check">
                                                                 <input class="form-check-input" type="checkbox"
-                                                                    name="types" value="<%= t %>" id="type_<%= t %>"
-                                                                    <%=typeof selectedTypes !=='undefined' &&
-                                                                    selectedTypes.includes(t) ? 'checked' : '' %>>
-                                                                <label class="form-check-label text-capitalize small"
-                                                                    for="type_<%= t %>">
-                                                                    <%= t %>
+                                                                    name="generations" value="<%= i %>" id="gen<%= i %>"
+                                                                    <%=typeof selectedGens !=='undefined' &&
+                                                                    selectedGens.includes(String(i)) ? 'checked' : ''
+                                                                    %>>
+                                                                <label class="form-check-label small"
+                                                                    for="gen<%= i %>">Gen
+                                                                    <%= i %> (<%= regions[i] %>)
                                                                 </label>
                                                             </div>
                                                         </div>
-                                                        <% }) %>
-                                                </div>
-                                        </div>
-                                    </div>
-
-                                </div> <!-- End of row -->
-
-                                <p class="small text-muted mb-0 mt-2">Enter to apply.</p>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                <div class="row row-cols-3 row-cols-md-3 row-cols-lg-3 g-3">
-
-                    <% if (pokemons.length===0) { %>
-                        <div class="container mt-5">
-                            <p class="text-muted text-center">Invalid</p>
-                        </div>
-                        <% } else { %>
-                            <% pokemons.forEach(pokemon=> { %>
-                                <div class="col">
-                                    <!-- card h-100 ensures all cards in a row match the same height -->
-                                    <div class="card h-100 p-3 shadow-sm text-center" style="cursor: pointer;"
-                                        onclick="window.location.href='/pokemon/<%= pokemon.id %>'">
-
-                                        <!-- Top Row: ID on the left, Generation on the right -->
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <span class="text-muted">#<%= String(pokemon.id).padStart(3, '0' ) %></span>
-                                            <!-- Generation Badge -->
-                                            <span class="genBadge badge opacity-75 small">Gen <%= pokemon.generation %>
-                                                    </span>
+                                                        <% } %>
+                                            </div>
                                         </div>
 
-                                        <% if (pokemon.image) { %>
-                                            <img src="<%= pokemon.image %>"
-                                                alt="<%= pokemon.name.replace(/-(male|female)$/i, '') %>"
-                                                class="img-fluid mx-auto mb-2" style="max-height: 120px;">
-                                            <% } else { %>
-                                                <p class="text-muted">No image available</p>
-                                                <% } %>
+                                        <!-- Type Checkboxes -->
+                                        <div class="col-md-6 mb-2">
+                                            <h6 class="fw-bold text-secondary">Types</h6>
+                                            <div style="max-height: 160px; overflow-y: auto;" class="pe-2">
+                                                <% const allTypes=['grass', 'poison' , 'fire' , 'water' , 'bug'
+                                                    , 'normal' , 'electric' , 'fairy' , 'fighting' , 'psychic' , 'rock'
+                                                    , 'ghost' , 'ice' , 'dragon' , 'ground' , 'steel' , 'dark'
+                                                    , 'flying' ]; %>
+                                                    <div class="row g-1">
+                                                        <% allTypes.forEach(t=> { %>
+                                                            <div class="col-6">
+                                                                <div class="form-check">
+                                                                    <input class="form-check-input" type="checkbox"
+                                                                        name="types" value="<%= t %>" id="type_<%= t %>"
+                                                                        <%=typeof selectedTypes !=='undefined' &&
+                                                                        selectedTypes.includes(t) ? 'checked' : '' %>>
+                                                                    <label
+                                                                        class="form-check-label text-capitalize small"
+                                                                        for="type_<%= t %>">
+                                                                        <%= t %>
+                                                                    </label>
+                                                                </div>
+                                                            </div>
+                                                            <% }) %>
+                                                    </div>
+                                            </div>
+                                        </div>
 
-                                                    <h5 class="mb-1 mt-2 card-title text-capitalize">
-                                                        <%= pokemon.name.replace(/-(male|female)$/i, '') %>
-                                                    </h5>
+                                    </div> <!-- End of row -->
 
-                                                    <% // Map standard Pokémon types to their colors const const
-                                                        typeColors={ grass: '#9bcc50' , poison: '#b97fc9' ,
-                                                        fire: '#fd7d24' , water: '#4592c4' , bug: '#729f3f' ,
-                                                        normal: '#a4acaf' , electric: '#eed535' , fairy: '#fdb9e9' ,
-                                                        fighting: '#d56723' , psychic: '#f366b9' , rock: '#a38c21' ,
-                                                        ghost: '#7b62a3' , ice: '#51c4e7' , dragon: '#53a4cf' ,
-                                                        ground: '#ab9842' , steel: '#9eb7b8' , dark: '#707070' ,
-                                                        flying: '#3dc7be' }; %>
-
-                                                        <p class="mb-2 text-muted">
-                                                            <% if (pokemon.type) { %>
-                                                                <% const typesArray=pokemon.type.split(',').map(t=>
-                                                                    t.trim().toLowerCase()); %>
-                                                                    <% typesArray.forEach(t=> { %>
-                                                                        <!-- Directly evaluate the color inside the style output tag -->
-                                                                        <span class="badge me-1 text-white"
-                                                                            style="background-color: <%= typeColors[t] || '#6c757d' %>;">
-                                                                            <%= t %>
-                                                                        </span>
-                                                                        <% }) %>
-                                                                            <% } else { %>
-                                                                                <span class="text-muted">None</span>
-                                                                                <% } %>
-                                                        </p>
-
-                                                        <div class="card-details">
-                                                            <p class="small text-secondary mb-1">
-                                                                <%= pokemon.description %>
-                                                            </p>
-                                                        </div>
-                                    </div>
+                                    <p class="small text-muted mb-0 mt-2">Enter to apply.</p>
                                 </div>
-                                <% }) %>
-                                    <% } %>
-                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="row row-cols-3 row-cols-md-3 row-cols-lg-3 g-3">
 
-                <% if (typeof totalPages !=='undefined' && totalPages> 1) { %>
-                    <nav aria-label="Pokedex Navigation" class="d-flex justify-content-center mt-5 mb-4">
-                        <ul class="pagination justify-content-center mb-0">
+                        <% if (pokemons.length===0) { %>
+                            <div class="container mt-5">
+                                <p class="text-muted text-center">Invalid</p>
+                            </div>
+                            <% } else { %>
+                                <% pokemons.forEach(pokemon=> { %>
+                                    <div class="col">
+                                        <!-- card h-100 ensures all cards in a row match the same height -->
+                                        <div class="card h-100 p-3 shadow-sm text-center" style="cursor: pointer;"
+                                            onclick="window.location.href='/pokemon/<%= pokemon.id %>'">
 
-                            <!-- Previous Button (Loops to last page if on page 1) -->
-                            <% let prevPage=currentPage <=1 ? totalPages : currentPage - 1; let prevParams={
-                                ...queryParams, page: prevPage }; %>
-                                <li class="page-item">
-                                    <a class="page-link"
-                                        href="/pokedex?<%= new URLSearchParams(prevParams).toString() %>">&lt;</a>
-                                </li>
+                                            <!-- Top Row: ID on the left, Generation on the right -->
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <span class="text-muted">#<%= String(pokemon.id).padStart(3, '0' ) %>
+                                                        </span>
+                                                <!-- Generation Badge -->
+                                                <span class="genBadge badge opacity-75 small">Gen <%= pokemon.generation
+                                                        %>
+                                                </span>
+                                            </div>
 
-                                <!-- Page Number Indicator -->
-                                <li class="page-item disabled">
-                                    <span class="page-link bg-light text-dark">Page <%= currentPage %> of <%= totalPages
-                                                %></span>
-                                </li>
+                                            <% if (pokemon.image) { %>
+                                                <img src="<%= pokemon.image %>"
+                                                    alt="<%= pokemon.name.replace(/-(male|female)$/i, '') %>"
+                                                    class="img-fluid mx-auto mb-2" style="max-height: 120px;">
+                                                <% } else { %>
+                                                    <p class="text-muted">No image available</p>
+                                                    <% } %>
 
-                                <!-- Next Button (Loops to page 1 if on last page) -->
-                                <% let nextPage=currentPage>= totalPages ? 1 : currentPage + 1;
-                                    let nextParams = { ...queryParams, page: nextPage };
-                                    %>
+                                                        <h5 class="mb-1 mt-2 card-title text-capitalize">
+                                                            <%= pokemon.name.replace(/-(male|female)$/i, '' ) %>
+                                                        </h5>
+
+                                                        <% // Map standard Pokémon types to their colors const const
+                                                            typeColors={ grass: '#9bcc50' , poison: '#b97fc9' ,
+                                                            fire: '#fd7d24' , water: '#4592c4' , bug: '#729f3f' ,
+                                                            normal: '#a4acaf' , electric: '#eed535' , fairy: '#fdb9e9' ,
+                                                            fighting: '#d56723' , psychic: '#f366b9' , rock: '#a38c21' ,
+                                                            ghost: '#7b62a3' , ice: '#51c4e7' , dragon: '#53a4cf' ,
+                                                            ground: '#ab9842' , steel: '#9eb7b8' , dark: '#707070' ,
+                                                            flying: '#3dc7be' }; %>
+
+                                                            <p class="mb-2 text-muted">
+                                                                <% if (pokemon.type) { %>
+                                                                    <% const typesArray=pokemon.type.split(',').map(t=>
+                                                                        t.trim().toLowerCase()); %>
+                                                                        <% typesArray.forEach(t=> { %>
+                                                                            <!-- Directly evaluate the color inside the style output tag -->
+                                                                            <span class="badge me-1 text-white"
+                                                                                style="background-color: <%= typeColors[t] || '#6c757d' %>;">
+                                                                                <%= t %>
+                                                                            </span>
+                                                                            <% }) %>
+                                                                                <% } else { %>
+                                                                                    <span class="text-muted">None</span>
+                                                                                    <% } %>
+                                                            </p>
+
+                                                            <div class="card-details">
+                                                                <p class="small text-secondary mb-1">
+                                                                    <%= pokemon.description %>
+                                                                </p>
+                                                            </div>
+                                        </div>
+                                    </div>
+                                    <% }) %>
+                                        <% } %>
+                    </div>
+
+                    <% if (typeof totalPages !=='undefined' && totalPages> 1) { %>
+                        <nav aria-label="Pokedex Navigation" class="d-flex justify-content-center mt-5 mb-4">
+                            <ul class="pagination justify-content-center mb-0">
+
+                                <!-- Previous Button (Loops to last page if on page 1) -->
+                                <% let prevPage=currentPage <=1 ? totalPages : currentPage - 1; let prevParams={
+                                    ...queryParams, page: prevPage }; %>
                                     <li class="page-item">
-                                        <a class="page-link"
-                                            href="/pokedex?<%= new URLSearchParams(nextParams).toString() %>">&gt;</a>
+                                        <a class="page-link" href="/pokedex?<%= buildQuery({ page: prevPage }) %>">&lt;</a>
                                     </li>
 
-                        </ul>
-                    </nav>
-                    <% } %>
-                        <footer class="small text-center text-muted mt-4">
-                            <p>Pokémon data sourced from <a href="https://pokeapi.co/" target="_blank">PokeAPI</a>.
-                                <br>All rights
-                                belong to Nintendo.
-                            </p>
-                        </footer>
+                                    <!-- Page Number Indicator -->
+                                    <li class="page-item disabled">
+                                        <span class="page-link bg-light text-dark">Page <%= currentPage %> of <%=
+                                                    totalPages %></span>
+                                    </li>
+
+                                    <!-- Next Button (Loops to page 1 if on last page) -->
+                                    <% let nextPage=currentPage>= totalPages ? 1 : currentPage + 1;
+                                        let nextParams = { ...queryParams, page: nextPage };
+                                        %>
+                                        <li class="page-item">
+                                            <a class="page-link" href="/pokedex?<%= buildQuery({ page: nextPage }) %>">&gt;</a>
+                                        </li>
+
+                            </ul>
+                        </nav>
+                        <% } %>
+                            <footer class="small text-center text-muted mt-4">
+                                <p>Pokémon data sourced from <a href="https://pokeapi.co/" target="_blank">PokeAPI</a>.
+                                    <br>All rights
+                                    belong to Nintendo.
+                                </p>
+                            </footer>
+                </div>
             </div>
-        </div>
 </body>
