@@ -7,6 +7,7 @@
     <% const displayPokemonName = String(pokemon.pokemon_name || '').replace(/-(male|female)$/i, ''); %>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link id="dynamicFavicon" rel="icon" type="image/png" href="<%= pokemon.pokemon_img %>">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <title>
         <%= displayPokemonName %> - PokemonWeb
@@ -28,10 +29,19 @@
             align-items: center;
             position: relative;
             top: 4px;
+            cursor: pointer;
         }
 
         .shiny-button:hover {
             transform: scale(1.3);
+        }
+
+        /* Greyed out when the selected form has no shiny */
+        .shiny-button:disabled,
+        .shiny-button:disabled:hover {
+            opacity: 0.3;
+            cursor: not-allowed;
+            transform: none;
         }
 
         .pokemon-sprite-frame {
@@ -49,9 +59,12 @@
             object-fit: contain;
         }
 
+        .evo {
+            transition: transform 0.2s ease-in-out; /* Placed directly on the base class */
+        }
+
         .evo:hover {
-            transform: scale(1.1);
-            transition: transform 0.2s ease-in-out;
+            transform: scale(1.2);
         }
     </style>
 </head>
@@ -63,8 +76,9 @@
     // ---------- Forms data (default form + every alternative form) ----------
     const alternativeForms = typeof forms !== 'undefined' ? forms.filter(f => f.form_name !== 'Default Form') : [];
     const defaultLabel = pokemon.pokemon_default_form_name || 'Default Form';
+    const baseTypes = pokemon.type ? pokemon.type.split(',').map(t => t.trim().toLowerCase()) : [];
 
-    // Index 0 = default form. Forms with no stats/size/cry of their own fall back to the base Pokémon.
+    // Index 0 = default form. Forms with no stats/size/cry/types of their own fall back to the base Pokémon.
     const formsData = [{
         label: defaultLabel,
         img: pokemon.pokemon_img,
@@ -78,11 +92,20 @@
         height: Number(pokemon.pokemon_height),
         weight: Number(pokemon.pokemon_weight),
         cryLatest: pokemon.pokemon_cry_latest,
-        cryLegacy: pokemon.pokemon_cry_legacy
+        cryLegacy: pokemon.pokemon_cry_legacy,
+        types: baseTypes
     }].concat(alternativeForms.map(f => ({
         label: f.form_name,
         img: f.form_img,
         shiny: f.form_shiny_img,
+        // Regional forms / Megas can have different types (e.g. Hisuian Avalugg is Ice/Rock)
+        types: (() => {
+            if (!f.form_types) return baseTypes;
+            const ft = f.form_types.split(',').map(t => t.trim().toLowerCase());
+            // Same types as the default form? Keep the default form's order so the badges don't swap.
+            const sameSet = ft.length === baseTypes.length && ft.every(t => baseTypes.includes(t));
+            return sameSet ? baseTypes : ft;
+        })(),
         hp: f.form_hp ?? pokemon.pokemon_hp,
         atk: f.form_atk ?? pokemon.pokemon_atk,
         def: f.form_def ?? pokemon.pokemon_def,
@@ -109,9 +132,12 @@
                 <%= displayPokemonName %>
             </h1>
 
-            <% if (pokemon.pokemon_shiny_img) { %>
-                <button id="shinyToggleBtn" class="shiny-button btn p-0" onclick="toggleShiny()" title="View Shiny"
-                    style="cursor: pointer; font-size: 1.3rem; border: none; background: transparent;">
+            <% if (formsData.some(f => f.shiny)) { %>
+                <!-- Shiny button: disabled when the selected form has no shiny -->
+                <button id="shinyToggleBtn" class="shiny-button btn p-0" onclick="toggleShiny()"
+                    title="<%= formsData[0].shiny ? 'View Shiny' : 'No shiny available' %>"
+                    style="font-size: 1.3rem; border: none; background: transparent;"
+                    <%= formsData[0].shiny ? '' : 'disabled' %>>
                     ✨
                 </button>
             <% } %>
@@ -185,10 +211,10 @@
                     steel: '#9eb7b8', dark: '#707070', flying: '#3dc7be'
                 }; %>
 
-                <p class="mb-2 text-center">
-                    <% if (pokemon.type) { %>
-                        <% const typesArray = pokemon.type.split(',').map(t => t.trim().toLowerCase()); %>
-                        <% typesArray.forEach(t => { %>
+                <!-- Type badges (re-rendered by switchForm when the form's types differ) -->
+                <p id="typeBadges" class="mb-2 text-center">
+                    <% if (baseTypes.length > 0) { %>
+                        <% baseTypes.forEach(t => { %>
                             <span class="badge me-1 text-white"
                                 style="background-color: <%= typeColors[t] || '#6c757d' %>;">
                                 <%= t %>
@@ -376,12 +402,115 @@
         let normalImg = formsData[0].img;
         let shinyImg = formsData[0].shiny;
 
+        // ---------- Type badges ----------
+        const typeColorMap = {
+            grass: '#9bcc50', poison: '#b97fc9', fire: '#fd7d24', water: '#4592c4', bug: '#729f3f',
+            normal: '#a4acaf', electric: '#eed535', fairy: '#fdb9e9', fighting: '#d56723', psychic: '#f366b9',
+            rock: '#a38c21', ghost: '#7b62a3', ice: '#51c4e7', dragon: '#53a4cf', ground: '#ab9842',
+            steel: '#9eb7b8', dark: '#707070', flying: '#3dc7be'
+        };
+
+        function renderTypes(types) {
+            const box = document.getElementById('typeBadges');
+            if (!box) return;
+            box.replaceChildren();
+            if (!types || types.length === 0) {
+                const none = document.createElement('span');
+                none.className = 'text-muted';
+                none.textContent = 'None';
+                box.appendChild(none);
+                return;
+            }
+            types.forEach(t => {
+                const span = document.createElement('span');
+                span.className = 'badge me-1 text-white';
+                span.style.backgroundColor = typeColorMap[t] || '#6c757d';
+                span.textContent = t;
+                box.appendChild(span);
+            });
+        }
+
+        // ---------- Shiny size alignment ----------
+        // Some shiny files have a different canvas size / padding than the normal image.
+        // This redraws the shiny so its visible area matches the normal image's.
+        const alignedCache = {};
+
+        function loadImg(url) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => resolve(img);
+                img.onerror = reject;
+                img.src = url;
+            });
+        }
+
+        // Bounding box of the visible (non-transparent) pixels
+        function contentBox(img) {
+            const c = document.createElement('canvas');
+            c.width = img.naturalWidth;
+            c.height = img.naturalHeight;
+            const ctx = c.getContext('2d', { willReadFrequently: true });
+            ctx.drawImage(img, 0, 0);
+            const { data, width, height } = ctx.getImageData(0, 0, c.width, c.height);
+            let minX = width, minY = height, maxX = -1, maxY = -1;
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    if (data[(y * width + x) * 4 + 3] > 20) {
+                        if (x < minX) minX = x;
+                        if (x > maxX) maxX = x;
+                        if (y < minY) minY = y;
+                        if (y > maxY) maxY = y;
+                    }
+                }
+            }
+            if (maxX < 0) return { x: 0, y: 0, w: width, h: height };
+            return { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
+        }
+
+        async function alignedShiny(normalUrl, shinyUrl) {
+            const key = normalUrl + '|' + shinyUrl;
+            if (alignedCache[key]) return alignedCache[key];
+
+            const [n, s] = await Promise.all([loadImg(normalUrl), loadImg(shinyUrl)]);
+            const nb = contentBox(n);
+            const sb = contentBox(s);
+
+            const canvas = document.createElement('canvas');
+            canvas.width = n.naturalWidth;
+            canvas.height = n.naturalHeight;
+
+            const scale = Math.min(nb.w / sb.w, nb.h / sb.h);
+            const w = sb.w * scale;
+            const h = sb.h * scale;
+            const dx = nb.x + (nb.w - w) / 2;
+            const dy = nb.y + (nb.h - h) / 2;
+
+            canvas.getContext('2d').drawImage(s, sb.x, sb.y, sb.w, sb.h, dx, dy, w, h);
+            return (alignedCache[key] = canvas.toDataURL('image/png'));
+        }
+
+        // Prepare the aligned shiny for the default form so the first toggle is instant
+        if (shinyImg) alignedShiny(normalImg, shinyImg).catch(() => {});
+
+        // ---------- Cries ----------
         function playCry(key) {
             const url = formsData[currentIndex][key];
             if (!url) return;
             new Audio(url).play().catch(err => console.log("Audio playback blocked or failed:", err));
         }
 
+        // ---------- Shiny button state ----------
+        function updateShinyButton() {
+            const btn = document.getElementById('shinyToggleBtn');
+            if (!btn) return;
+            const hasShiny = !!shinyImg;
+            btn.disabled = !hasShiny;
+            btn.title = hasShiny ? 'View Shiny' : 'No shiny available';
+            btn.classList.replace('btn-warning', 'btn-outline-warning');
+        }
+
+        // ---------- Form switching ----------
         function switchForm(index, element) {
             const f = formsData[index];
             currentIndex = index;
@@ -389,13 +518,24 @@
             shinyImg = f.shiny;
             isShiny = false; // Reset shiny state on form change
 
+            // Update the browser tab favicon dynamically
+            const favicon = document.getElementById('dynamicFavicon');
+            if (favicon) {
+                favicon.href = normalImg;
+            }
+
+            // Prepare this form's size-matched shiny in the background
+            if (shinyImg) alignedShiny(normalImg, shinyImg).catch(() => {});
+
             document.getElementById('pokemonImage').src = normalImg;
 
             const labelElement = document.getElementById('currentFormLabel');
             if (labelElement) labelElement.textContent = f.label;
 
-            const shinyBtn = document.getElementById('shinyToggleBtn');
-            if (shinyBtn) shinyBtn.classList.replace('btn-warning', 'btn-outline-warning');
+            updateShinyButton();
+
+            // Types (regional forms / Megas can differ from the base Pokémon)
+            renderTypes(f.types);
 
             // Stats: reset every bar to 0 and animate it up to the new value again
             statKeys.forEach(k => {
@@ -426,14 +566,25 @@
             if (element) element.classList.add('active');
         }
 
-        function toggleShiny() {
+        // ---------- Shiny toggle ----------
+        async function toggleShiny() {
+            if (!shinyImg) return;
+
             const imgElement = document.getElementById('pokemonImage');
             const btnElement = document.getElementById('shinyToggleBtn');
 
             isShiny = !isShiny;
             if (isShiny) {
-                imgElement.src = shinyImg;
                 btnElement.classList.replace('btn-outline-warning', 'btn-warning');
+                const wanted = shinyImg;
+                let src = shinyImg;
+                try {
+                    src = await alignedShiny(normalImg, shinyImg);
+                } catch (err) {
+                    console.log('Could not align shiny image, using original:', err);
+                }
+                // Only apply if the user hasn't toggled back or switched form while it loaded
+                if (isShiny && shinyImg === wanted) imgElement.src = src;
             } else {
                 imgElement.src = normalImg;
                 btnElement.classList.replace('btn-warning', 'btn-outline-warning');

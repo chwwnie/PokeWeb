@@ -155,22 +155,24 @@ async function seedPokemon(id) {
             const normalizedKey = formName.toLowerCase();
             if (addedForms.has(normalizedKey)) return;
             addedForms.add(normalizedKey);
-
+            
             try {
                 await db.promise().query(
-                    `INSERT INTO pokemon_forms (pokemon_id, form_name, form_img, form_shiny_img, form_hp, form_atk, form_def, form_sp_atk, form_sp_def, form_speed, form_height, form_weight, form_cry_latest, form_cry_legacy) 
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
-                     AS new_form
-                     ON DUPLICATE KEY UPDATE 
+                    `INSERT INTO pokemon_forms (pokemon_id, form_name, form_img, form_shiny_img, form_type, form_hp, form_atk, form_def, form_sp_atk, form_sp_def, form_speed, form_height, form_weight, form_cry_latest, form_cry_legacy) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
+                    AS new_form
+                    ON DUPLICATE KEY UPDATE 
                         form_img = new_form.form_img, form_shiny_img = new_form.form_shiny_img,
                         form_hp = new_form.form_hp, form_atk = new_form.form_atk, form_def = new_form.form_def,
                         form_sp_atk = new_form.form_sp_atk, form_sp_def = new_form.form_sp_def, form_speed = new_form.form_speed,
                         form_height = new_form.form_height, form_weight = new_form.form_weight,
-                        form_cry_latest = new_form.form_cry_latest, form_cry_legacy = new_form.form_cry_legacy`,
+                        form_cry_latest = new_form.form_cry_latest, form_cry_legacy = new_form.form_cry_legacy,
+                        form_type = new_form.form_type`,
                     [pokemonId, formName, formImg, formShinyImg,
-                        x.hp ?? null, x.atk ?? null, x.def ?? null, x.spAtk ?? null, x.spDef ?? null, x.speed ?? null,
-                        x.height ?? null, x.weight ?? null, x.cryLatest ?? null, x.cryLegacy ?? null]
+                    x.type ?? null, x.hp ?? null, x.atk ?? null, x.def ?? null, x.spAtk ?? null, x.spDef ?? null, x.speed ?? null,
+                    x.height ?? null, x.weight ?? null, x.cryLatest ?? null, x.cryLegacy ?? null]
                 );
+
             } catch (formErr) {
                 console.error(`Error saving ${formName} form for ${name}:`, formErr.message);
             }
@@ -203,6 +205,7 @@ async function seedPokemon(id) {
                 const stat = n => v.stats.find(s => s.stat.name === n)?.base_stat ?? null;
 
                 await saveForm(formLabelFromSuffix(suffix, baseDisplay), art.front_default, art.front_shiny || null, {
+                    type: v.types.slice().map(t => t.type.name).join(','),
                     hp: stat('hp'),
                     atk: stat('attack'),
                     def: stat('defense'),
