@@ -133,60 +133,60 @@
                                     <!-- Added wrapper row so the two columns sit side-by-side -->
                                     <div class="row">
 
-                                        <!-- Generation Checkboxes -->
+                                        <!-- LEFT: Generations (top) + Alphabetical (bottom) -->
                                         <div class="col-md-6 mb-2 border-end">
+
                                             <h6 class="fw-bold text-secondary">Generations</h6>
                                             <div class="row g-1">
-                                                <% // Array of region names indexed by generation number (1 to 9) const
-                                                    regions=['', 'Kanto' , 'Johto' , 'Hoenn' , 'Sinnoh' , 'Unova'
-                                                    , 'Kalos' , 'Alola' , 'Galar' , 'Paldea' ]; %>
-                                                    <% for(let i=1; i <=9; i++) { %>
-                                                        <div class="col-4">
+                                                <% const regions = ['', 'Kanto', 'Johto', 'Hoenn', 'Sinnoh', 'Unova', 'Kalos', 'Alola', 'Galar', 'Paldea']; %>
+                                                <% for (let i = 1; i <= 9; i++) { %>
+                                                    <div class="col-4">
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="checkbox" name="generations" value="<%= i %>"
+                                                                id="gen<%= i %>"
+                                                                <%= typeof selectedGens !== 'undefined' && selectedGens.includes(String(i)) ? 'checked' : '' %>>
+                                                            <label class="form-check-label small" for="gen<%= i %>">
+                                                                Gen <%= i %> (<%= regions[i] %>)
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                <% } %>
+                                            </div>
+
+                                            <hr class="my-3">
+
+                                            <h6 class="fw-bold text-secondary">Alphabetical</h6>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="sortby" value="name" id="sortByName"
+                                                    <%= typeof currentSortBy !== 'undefined' && currentSortBy === 'name' ? 'checked' : '' %>>
+                                                <label class="form-check-label small" for="sortByName">Alphabetical (A–Z)</label>
+                                            </div>
+
+                                        </div>
+
+                                        <!-- RIGHT: Types (full height) -->
+                                        <div class="col-md-6 mb-2">
+                                            <h6 class="fw-bold text-secondary">Types</h6>
+                                            <div style="max-height: 340px; overflow-y: auto;" class="pe-2">
+                                                <% const allTypes = ['grass', 'poison', 'fire', 'water', 'bug', 'normal', 'electric', 'fairy', 'fighting', 'psychic', 'rock', 'ghost', 'ice', 'dragon', 'ground', 'steel', 'dark', 'flying']; %>
+                                                <div class="row g-1">
+                                                    <% allTypes.forEach(t => { %>
+                                                        <div class="col-6">
                                                             <div class="form-check">
-                                                                <input class="form-check-input" type="checkbox"
-                                                                    name="generations" value="<%= i %>" id="gen<%= i %>"
-                                                                    <%=typeof selectedGens !=='undefined' &&
-                                                                    selectedGens.includes(String(i)) ? 'checked' : ''
-                                                                    %>>
-                                                                <label class="form-check-label small"
-                                                                    for="gen<%= i %>">Gen
-                                                                    <%= i %> (<%= regions[i] %>)
+                                                                <input class="form-check-input" type="checkbox" name="types" value="<%= t %>"
+                                                                    id="type_<%= t %>"
+                                                                    <%= typeof selectedTypes !== 'undefined' && selectedTypes.includes(t) ? 'checked' : '' %>>
+                                                                <label class="form-check-label text-capitalize small" for="type_<%= t %>">
+                                                                    <%= t %>
                                                                 </label>
                                                             </div>
                                                         </div>
-                                                        <% } %>
+                                                    <% }) %>
+                                                </div>
                                             </div>
                                         </div>
 
-                                        <!-- Type Checkboxes -->
-                                        <div class="col-md-6 mb-2">
-                                            <h6 class="fw-bold text-secondary">Types</h6>
-                                            <div style="max-height: 160px; overflow-y: auto;" class="pe-2">
-                                                <% const allTypes=['grass', 'poison' , 'fire' , 'water' , 'bug'
-                                                    , 'normal' , 'electric' , 'fairy' , 'fighting' , 'psychic' , 'rock'
-                                                    , 'ghost' , 'ice' , 'dragon' , 'ground' , 'steel' , 'dark'
-                                                    , 'flying' ]; %>
-                                                    <div class="row g-1">
-                                                        <% allTypes.forEach(t=> { %>
-                                                            <div class="col-6">
-                                                                <div class="form-check">
-                                                                    <input class="form-check-input" type="checkbox"
-                                                                        name="types" value="<%= t %>" id="type_<%= t %>"
-                                                                        <%=typeof selectedTypes !=='undefined' &&
-                                                                        selectedTypes.includes(t) ? 'checked' : '' %>>
-                                                                    <label
-                                                                        class="form-check-label text-capitalize small"
-                                                                        for="type_<%= t %>">
-                                                                        <%= t %>
-                                                                    </label>
-                                                                </div>
-                                                            </div>
-                                                            <% }) %>
-                                                    </div>
-                                            </div>
-                                        </div>
-
-                                    </div> <!-- End of row -->
+                                    </div> <!-- end of row -->
 
                                     <p class="small text-muted mb-0 mt-2">Enter to apply.</p>
                                 </div>

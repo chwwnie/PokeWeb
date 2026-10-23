@@ -37,12 +37,18 @@ app.use(flash());
 
 app.set('view engine', 'ejs');
 
-// Pokedex route with search, filters, and pagination
+// Pokedex route with search, filters, alphabetical order, and pagination
 app.get('/pokedex', (req, res) => {
   const searchPokemon = req.query.search;
   const typeFilter = req.query.types;
   const generationFilter = req.query.generations;
+
+  // Direction (⇅ button): 'asc' or 'desc'. Older links that used 'name_asc' / 'name_desc' still work.
   const sortBy = req.query.sort || 'asc';
+  const sortDirection = String(sortBy).endsWith('desc') ? 'DESC' : 'ASC';
+
+  // Alphabetical filter: ticked checkbox sends sortby=name; otherwise order by Pokédex number
+  const alphabetical = req.query.sortby === 'name' || String(sortBy).startsWith('name_');
 
   const limit = 12;
   const page = parseInt(req.query.page) || 1;
@@ -85,23 +91,24 @@ app.get('/pokedex', (req, res) => {
     const totalPokemons = countResult[0].total;
     const totalPages = Math.ceil(totalPokemons / limit);
 
-    let dataSql = `SELECT 
-        p.pokemon_id AS id, 
-        p.pokemon_img AS image, 
-        p.pokemon_name AS name, 
-        GROUP_CONCAT(t.type_name SEPARATOR ', ') AS type, 
-        p.pokemon_hp AS hp, 
-        p.pokemon_height AS height, 
-        p.pokemon_weight AS weight, 
+    let dataSql = `SELECT
+        p.pokemon_id AS id,
+        p.pokemon_img AS image,
+        p.pokemon_name AS name,
+        GROUP_CONCAT(t.type_name SEPARATOR ', ') AS type,
+        p.pokemon_hp AS hp,
+        p.pokemon_height AS height,
+        p.pokemon_weight AS weight,
         p.pokemon_generation AS generation,
-        p.pokemon_desc AS description 
+        p.pokemon_desc AS description
       ${baseSql}
       GROUP BY p.pokemon_id`;
 
-    if (sortBy === 'desc') {
-      dataSql += ` ORDER BY p.pokemon_id DESC`;
+    // sortDirection is only ever 'ASC' or 'DESC' (never raw user input), so it is safe to put in the SQL
+    if (alphabetical) {
+      dataSql += ` ORDER BY p.pokemon_name ${sortDirection}, p.pokemon_id ASC`;
     } else {
-      dataSql += ` ORDER BY p.pokemon_id ASC`;
+      dataSql += ` ORDER BY p.pokemon_id ${sortDirection}`;
     }
 
     dataSql += ` LIMIT ${limit} OFFSET ${offset}`;
@@ -117,7 +124,8 @@ app.get('/pokedex', (req, res) => {
         searchPokemon: searchPokemon || '',
         selectedTypes: typeFilter ? (Array.isArray(typeFilter) ? typeFilter : [typeFilter]) : [],
         selectedGens: generationFilter ? (Array.isArray(generationFilter) ? generationFilter : [generationFilter]) : [],
-        currentSortQuery: sortBy,
+        currentSortQuery: sortBy,                        // direction value, as before
+        currentSortBy: alphabetical ? 'name' : 'id',     // used by the Alphabetical checkbox
         currentPage: page,
         totalPages: totalPages,
         queryParams: req.query
@@ -132,8 +140,8 @@ router.get('/pokemon/:id', (req, res) => {
 
     // Query to find the Pokémon's index position relative to all ordered Pokémon
     const positionQuery = `
-        SELECT COUNT(*) as row_num 
-        FROM pokemons 
+        SELECT COUNT(*) as row_num
+        FROM pokemons
         WHERE pokemon_id <= ?
     `;
 
@@ -159,7 +167,7 @@ app.get('/pokemon/:id', (req, res) => {
   const pokemonId = req.params.id;
 
   const query = `
-      SELECT p.*, 
+      SELECT p.*,
               GROUP_CONCAT(DISTINCT t.type_name SEPARATOR ', ') AS type,
               GROUP_CONCAT(DISTINCT CONCAT(a.ability_name, IF(pa.is_hidden = 1, ' (Hidden)', '')) SEPARATOR ', ') AS pokemon_abilities,
               MAX(evo.pokemon_id) AS evolved_from_id,
