@@ -7,7 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <title>Pokemons - PokeWeb</title>
+    <title>Pokémons - PokéWeb</title>
 </head>
 <style>
     .card {
@@ -95,6 +95,42 @@
             });
         }
     });
+</script>
+
+<script>
+    // Swipe left = next page, swipe right = previous page (touch screens only)
+    (function () {
+        const next = document.getElementById('nextPageLink');
+        const prev = document.getElementById('prevPageLink');
+        if (!next || !prev) return;               // only one page of results
+
+        let startX = 0, startY = 0, tracking = false;
+
+        document.addEventListener('touchstart', e => {
+            if (e.touches.length !== 1) return;
+            const t = e.touches[0];
+            // Ignore taps on inputs / the open filter panel, and swipes that begin at the very screen edge
+            // (those are the browser's own back/forward gesture)
+            const blocked = e.target.closest('input, textarea, select, button, #filterCollapse.show');
+            const edge = t.clientX < 30 || t.clientX > window.innerWidth - 30;
+            tracking = !blocked && !edge;
+            startX = t.clientX;
+            startY = t.clientY;
+        }, { passive: true });
+
+        document.addEventListener('touchend', e => {
+            if (!tracking) return;
+            tracking = false;
+            const t = e.changedTouches[0];
+            const dx = t.clientX - startX;
+            const dy = t.clientY - startY;
+
+            // Must be a clear, mostly-horizontal swipe so normal scrolling never triggers it
+            if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.8) return;
+
+            window.location.href = (dx < 0 ? next : prev).href;
+        }, { passive: true });
+    })();
 </script>
 
 <body>
@@ -272,27 +308,41 @@
                     </div>
 
                     <% if (typeof totalPages !== 'undefined' && totalPages > 1) { %>
+                        <%
+                        // Builds a /pokedex URL that keeps every current filter (including multi-select ones) and sets the page
+                        const pageUrl = p => {
+                            const sp = new URLSearchParams();
+                            Object.entries(queryParams || {}).forEach(([k, v]) => {
+                                if (k === 'page') return;
+                                (Array.isArray(v) ? v : [v]).forEach(x => sp.append(k, x));
+                            });
+                            sp.set('page', p);
+                            return '/pokedex?' + sp.toString();
+                        };
+                        const prevPage = currentPage <= 1 ? totalPages : currentPage - 1;
+                        const nextPage = currentPage >= totalPages ? 1 : currentPage + 1;
+                        %>
                         <nav aria-label="Pokedex Navigation" class="d-flex justify-content-center mt-5 mb-4">
                             <ul class="pagination justify-content-center mb-0">
-                                <% let prevPage = currentPage <= 1 ? totalPages : currentPage - 1; %>
+
                                 <li class="page-item">
-                                    <a class="page-link" href="/pokedex?<%= buildQuery({ page: prevPage }) %>">&lt;</a>
+                                    <a class="page-link" id="prevPageLink" href="<%= pageUrl(prevPage) %>">&lt;</a>
                                 </li>
 
                                 <li class="page-item disabled">
                                     <span class="page-link bg-light text-dark">Page <%= currentPage %> of <%= totalPages %></span>
                                 </li>
 
-                                <% let nextPage = currentPage >= totalPages ? 1 : currentPage + 1; %>
                                 <li class="page-item">
-                                    <a class="page-link" href="/pokedex?<%= buildQuery({ page: nextPage }) %>">&gt;</a>
+                                    <a class="page-link" id="nextPageLink" href="<%= pageUrl(nextPage) %>">&gt;</a>
                                 </li>
+
                             </ul>
                         </nav>
                     <% } %>
 
                     <footer class="small text-center text-muted mt-4">
-                        <p>Pokémon data sourced from <a href="https://pokeapi.co/" target="_blank">PokeAPI</a>.<br>All rights belong to Nintendo.</p>
+                        <p>Pokémon data sourced from <a href="https://pokeapi.co/" target="_blank">PokéAPI</a>.<br>All rights belong to Nintendo.</p>
                     </footer>
                 </div>
             </div>
