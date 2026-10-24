@@ -99,7 +99,7 @@
 
 <script>
     // Swipe left = next page, swipe right = previous page (touch screens only)
-    (function () {
+    document.addEventListener('DOMContentLoaded', function () {
         const next = document.getElementById('nextPageLink');
         const prev = document.getElementById('prevPageLink');
         if (!next || !prev) return;               // only one page of results
@@ -130,7 +130,7 @@
 
             window.location.href = (dx < 0 ? next : prev).href;
         }, { passive: true });
-    })();
+    });
 </script>
 
 <body>
