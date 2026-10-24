@@ -2,10 +2,12 @@ const axios = require('axios');
 const mysql = require('mysql2');
 
 const db = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: 'RP738964$',
-    database: 'angelina_pokemonweb'
+    host: 'mysql-25f09974-pokemonweb.i.aivencloud.com',
+    port: 21815,
+    user: 'avnadmin',
+    password: 'AVNS_Ct-PVYuRsFRQ8vzesOG',
+    database: 'defaultdb',
+    ssl: { rejectUnauthorized: false }   // Aiven requires SSL
 });
 
 // ---------- Helpers ----------
