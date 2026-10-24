@@ -131,16 +131,18 @@
             <h1 class="text-capitalize mb-0">
                 <%= displayPokemonName %>
             </h1>
+        </div>
 
+        <div class="text-center mb-3 d-flex align-items-center justify-content-center gap-1">
             <% if (formsData.some(f => f.shiny)) { %>
-                <!-- Shiny button: disabled when the selected form has no shiny -->
-                <button id="shinyToggleBtn" class="shiny-button btn p-0" onclick="toggleShiny()"
-                    title="<%= formsData[0].shiny ? 'View Shiny' : 'No shiny available' %>"
-                    style="font-size: 1.3rem; border: none; background: transparent;"
-                    <%= formsData[0].shiny ? '' : 'disabled' %>>
-                    ✨
-                </button>
-            <% } %>
+                    <!-- Shiny button: disabled when the selected form has no shiny -->
+                    <button id="shinyToggleBtn" class="shiny-button btn p-0" onclick="toggleShiny()"
+                        title="<%= formsData[0].shiny ? 'View Shiny' : 'No shiny available' %>"
+                        style="font-size: 1.3rem; border: none; background: transparent;"
+                        <%= formsData[0].shiny ? '' : 'disabled' %>>
+                        ✨
+                    </button>
+                <% } %>
         </div>
 
         <% if (alternativeForms.length > 0) { %>
