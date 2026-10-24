@@ -24,12 +24,16 @@
         }
 
         .shiny-button {
-            transition: transform 0.2s ease-in-out;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-            top: 4px;
+            position: absolute;
+            top: 0.05em;
+            left: 100%;
+            margin-left: 0.1em;
+            font-size: 0.5em;          /* half the name's size: reads like an exponent */
+            line-height: 1;
+            border: none;
+            background: transparent;
             cursor: pointer;
+            transition: transform 0.2s ease-in-out;
         }
 
         .shiny-button:hover {
@@ -123,26 +127,23 @@
 
     <div class="container mt-5">
 
-        <h3 class="text-muted text-center">
+        <h3 class="text-muted text-center" style="transform: translateX(-0.1em);">
             <small>#<%= String(pokemon.pokemon_id).padStart(3, '0') %></small>
         </h3>
 
-        <div class="text-center mb-4 d-flex align-items-center justify-content-center gap-2">
-            <h1 class="text-capitalize mb-0">
+        <div class="text-center mb-4">
+            <h1 class="text-capitalize mb-0 d-inline-block position-relative" style="transform: translateX(-0.1em);">
                 <%= displayPokemonName %>
-            </h1>
-        </div>
 
-        <div class="text-center mb-3 d-flex align-items-center justify-content-center gap-1">
-            <% if (formsData.some(f => f.shiny)) { %>
-                    <!-- Shiny button: disabled when the selected form has no shiny -->
+                <% if (formsData.some(f => f.shiny)) { %>
+                    <!-- Shiny button: superscript at the name's top-right; disabled when the form has no shiny -->
                     <button id="shinyToggleBtn" class="shiny-button btn p-0" onclick="toggleShiny()"
                         title="<%= formsData[0].shiny ? 'View Shiny' : 'No shiny available' %>"
-                        style="font-size: 1.3rem; border: none; background: transparent;"
                         <%= formsData[0].shiny ? '' : 'disabled' %>>
                         ✨
                     </button>
                 <% } %>
+            </h1>
         </div>
 
         <% if (alternativeForms.length > 0) { %>
