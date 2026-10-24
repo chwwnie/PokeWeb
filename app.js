@@ -5,9 +5,7 @@ const flash = require('connect-flash');
 const multer = require('multer');
 const app = express();
 const router = express.Router();
-const port = 3000;
-const MySQLStore = require('express-mysql-session')(session);
-const sessionStore = new MySQLStore({}, db.promise ? db : db); 
+const port = process.env.PORT || 3000;
 
 // Create a connection to the database
 const db = mysql.createConnection({
