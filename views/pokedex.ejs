@@ -31,13 +31,33 @@
     /* Reveal and expand the details when the card is hovered */
     .card:hover .card-details {
         max-height: 150px;
-        /* Adjust depending on how much text you have */
         opacity: 1;
         margin-top: 10px;
     }
 
     .genBadge {
         background-color: #da5b5b;
+    }
+
+    /* Fix card header spacing for mobile screens */
+    .pokemon-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+
+    /* Ensure long names break safely or scale cleanly on mobile */
+    .pokemon-card-title {
+        font-size: 1.1rem;
+        word-break: break-word;
+    }
+
+    @media (max-width: 576px) {
+        .pokemon-card-title {
+            font-size: 0.95rem;
+        }
     }
 </style>
 
@@ -48,7 +68,6 @@
         let searchTimeout;
 
         if (searchInput && filterForm) {
-            // If the last reload came from typing, give focus back and put the cursor at the end
             if (sessionStorage.getItem('refocusSearch') === '1') {
                 sessionStorage.removeItem('refocusSearch');
                 searchInput.focus();
@@ -80,21 +99,21 @@
 
 <body>
     <%- include('header') %>
-        <% // Rebuilds the current query string, optionally overriding some values. 
-            // Handles repeated params like types=grass&types=fire correctly. 
-            const buildQuery=(overrides={})=> {
-            const params = new URLSearchParams();
-            const merged = { ...(typeof queryParams !== 'undefined' ? queryParams : {}), ...overrides };
-            Object.entries(merged).forEach(([key, value]) => {
-            if (value === undefined || value === null || value === '') return;
-            (Array.isArray(value) ? value : [value]).forEach(v => params.append(key, v));
-            });
-            return params.toString();
+        <% 
+            const buildQuery = (overrides = {}) => {
+                const params = new URLSearchParams();
+                const merged = { ...(typeof queryParams !== 'undefined' ? queryParams : {}), ...overrides };
+                Object.entries(merged).forEach(([key, value]) => {
+                    if (value === undefined || value === null || value === '') return;
+                    (Array.isArray(value) ? value : [value]).forEach(v => params.append(key, v));
+                });
+                return params.toString();
             };
         %>
 
             <div class="container mt-5">
                 <h1 class="mb-5 text-center">Pokédex</h1>
+                
                 <!-- Centered Search and Filter Bar -->
                 <div class="row justify-content-center mb-4">
                     <div class="col-md-8 position-relative">
@@ -112,13 +131,11 @@
                                     <i class="bi bi-filter"></i>
                                 </button>
 
-                                <!-- Compact Reverse Button using ⇅ -->
                                 <a href="/pokedex?<%= buildQuery({ sort: currentSortQuery === 'asc' ? 'desc' : 'asc', page: undefined }) %>"
                                     class="ms-3 text-muted text-decoration-none" style="font-size: 1.3rem;">
                                     ⇅
                                 </a>
 
-                                <!-- Reset Button (Only shows up when a search or filter is active, or kept always visible) -->
                                 <a href="/pokedex" class="ms-3 text-muted text-decoration-none" title="Clear Filters"
                                     style="font-size: 1.3rem;">
                                     ⟳
@@ -129,13 +146,9 @@
                             <div class="collapse mt-2 position-absolute start-0 end-0 shadow-lg" id="filterCollapse"
                                 style="z-index: 1000;">
                                 <div class="card card-body bg-white border">
-
-                                    <!-- Added wrapper row so the two columns sit side-by-side -->
                                     <div class="row">
-
                                         <!-- LEFT: Generations (top) + Alphabetical (bottom) -->
                                         <div class="col-md-6 mb-2 border-end">
-
                                             <h6 class="fw-bold text-secondary">Generations</h6>
                                             <div class="row g-1">
                                                 <% const regions = ['', 'Kanto', 'Johto', 'Hoenn', 'Sinnoh', 'Unova', 'Kalos', 'Alola', 'Galar', 'Paldea']; %>
@@ -161,10 +174,9 @@
                                                     <%= typeof currentSortBy !== 'undefined' && currentSortBy === 'name' ? 'checked' : '' %>>
                                                 <label class="form-check-label small" for="sortByName">Alphabetical (A–Z)</label>
                                             </div>
-
                                         </div>
 
-                                        <!-- RIGHT: Types (full height) -->
+                                        <!-- RIGHT: Types -->
                                         <div class="col-md-6 mb-2">
                                             <h6 class="fw-bold text-secondary">Types</h6>
                                             <div style="max-height: 340px; overflow-y: auto;" class="pe-2">
@@ -185,119 +197,104 @@
                                                 </div>
                                             </div>
                                         </div>
-
-                                    </div> <!-- end of row -->
-
+                                    </div>
                                     <p class="small text-muted mb-0 mt-2">Enter to apply.</p>
                                 </div>
                             </div>
                         </form>
                     </div>
-                    <div class="row row-cols-3 row-cols-md-3 row-cols-lg-3 g-3">
 
-                        <% if (pokemons.length===0) { %>
+                    <!-- Pokémon Grid Layout -->
+                    <div class="row row-cols-3 row-cols-md-3 row-cols-lg-3 g-3">
+                        <% if (pokemons.length === 0) { %>
                             <div class="container mt-5">
                                 <p class="text-muted text-center">Invalid</p>
                             </div>
-                            <% } else { %>
-                                <% pokemons.forEach(pokemon=> { %>
-                                    <div class="col">
-                                        <!-- card h-100 ensures all cards in a row match the same height -->
-                                        <div class="card h-100 p-3 shadow-sm text-center" style="cursor: pointer;"
-                                            onclick="window.location.href='/pokemon/<%= pokemon.id %>'">
+                        <% } else { %>
+                            <% pokemons.forEach(pokemon => { %>
+                                <div class="col">
+                                    <div class="card h-100 p-3 shadow-sm text-center" style="cursor: pointer;"
+                                        onclick="window.location.href='/pokemon/<%= pokemon.id %>'">
 
-                                            <!-- Top Row: ID on the left, Generation on the right -->
-                                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                                <span class="text-muted">#<%= String(pokemon.id).padStart(3, '0' ) %>
-                                                        </span>
-                                                <!-- Generation Badge -->
-                                                <span class="genBadge badge opacity-75 small">Gen <%= pokemon.generation
-                                                        %>
-                                                </span>
-                                            </div>
+                                        <!-- Top Row: ID on the left, Generation badge on the right (Fixed mobile crowding) -->
+                                        <div class="pokemon-card-header">
+                                            <span class="text-muted fw-bold">#<%= String(pokemon.id).padStart(3, '0') %></span>
+                                            <span class="genBadge badge opacity-75 small">Gen <%= pokemon.generation %></span>
+                                        </div>
 
-                                            <% if (pokemon.image) { %>
-                                                <img src="<%= pokemon.image %>"
-                                                    alt="<%= pokemon.name.replace(/-(male|female)$/i, '') %>"
-                                                    class="img-fluid mx-auto mb-2" style="max-height: 120px;">
-                                                <% } else { %>
-                                                    <p class="text-muted">No image available</p>
-                                                    <% } %>
+                                        <% if (pokemon.image) { %>
+                                            <img src="<%= pokemon.image %>"
+                                                alt="<%= pokemon.name.replace(/-(male|female)$/i, '') %>"
+                                                class="img-fluid mx-auto mb-2" style="max-height: 120px;">
+                                        <% } else { %>
+                                            <p class="text-muted">No image available</p>
+                                        <% } %>
 
-                                                        <h5 class="mb-1 mt-2 card-title text-capitalize">
-                                                            <%= pokemon.name.replace(/-(male|female)$/i, '' ) %>
-                                                        </h5>
+                                        <!-- Pokémon Name (Fixed awkward wrapping with word-break) -->
+                                        <h5 class="mb-1 mt-2 pokemon-card-title text-capitalize fw-bold">
+                                            <%= pokemon.name.replace(/-(male|female)$/i, '') %>
+                                        </h5>
 
-                                                        <% // Map standard Pokémon types to their colors const const
-                                                            typeColors={ grass: '#9bcc50' , poison: '#b97fc9' ,
-                                                            fire: '#fd7d24' , water: '#4592c4' , bug: '#729f3f' ,
-                                                            normal: '#a4acaf' , electric: '#eed535' , fairy: '#fdb9e9' ,
-                                                            fighting: '#d56723' , psychic: '#f366b9' , rock: '#a38c21' ,
-                                                            ghost: '#7b62a3' , ice: '#51c4e7' , dragon: '#53a4cf' ,
-                                                            ground: '#ab9842' , steel: '#9eb7b8' , dark: '#707070' ,
-                                                            flying: '#3dc7be' }; %>
+                                        <% 
+                                            const typeColors = { 
+                                                grass: '#9bcc50', poison: '#b97fc9', fire: '#fd7d24', 
+                                                water: '#4592c4', bug: '#729f3f', normal: '#a4acaf', 
+                                                electric: '#eed535', fairy: '#fdb9e9', fighting: '#d56723', 
+                                                psychic: '#f366b9', rock: '#a38c21', ghost: '#7b62a3', 
+                                                ice: '#51c4e7', dragon: '#53a4cf', ground: '#ab9842', 
+                                                steel: '#9eb7b8', dark: '#707070', flying: '#3dc7be' 
+                                            }; 
+                                        %>
 
-                                                            <p class="mb-2 text-muted">
-                                                                <% if (pokemon.type) { %>
-                                                                    <% const typesArray=pokemon.type.split(',').map(t=>
-                                                                        t.trim().toLowerCase()); %>
-                                                                        <% typesArray.forEach(t=> { %>
-                                                                            <!-- Directly evaluate the color inside the style output tag -->
-                                                                            <span class="badge me-1 text-white"
-                                                                                style="background-color: <%= typeColors[t] || '#6c757d' %>;">
-                                                                                <%= t %>
-                                                                            </span>
-                                                                            <% }) %>
-                                                                                <% } else { %>
-                                                                                    <span class="text-muted">None</span>
-                                                                                    <% } %>
-                                                            </p>
+                                        <p class="mb-2 text-muted">
+                                            <% if (pokemon.type) { %>
+                                                <% const typesArray = pokemon.type.split(',').map(t => t.trim().toLowerCase()); %>
+                                                <% typesArray.forEach(t => { %>
+                                                    <span class="badge me-1 text-white"
+                                                        style="background-color: <%= typeColors[t] || '#6c757d' %>;">
+                                                        <%= t %>
+                                                    </span>
+                                                <% }) %>
+                                            <% } else { %>
+                                                <span class="text-muted">None</span>
+                                            <% } %>
+                                        </p>
 
-                                                            <div class="card-details">
-                                                                <p class="small text-secondary mb-1">
-                                                                    <%= pokemon.description %>
-                                                                </p>
-                                                            </div>
+                                        <div class="card-details">
+                                            <p class="small text-secondary mb-1">
+                                                <%= pokemon.description %>
+                                            </p>
                                         </div>
                                     </div>
-                                    <% }) %>
-                                        <% } %>
+                                </div>
+                            <% }) %>
+                        <% } %>
                     </div>
 
-                    <% if (typeof totalPages !=='undefined' && totalPages> 1) { %>
+                    <% if (typeof totalPages !== 'undefined' && totalPages > 1) { %>
                         <nav aria-label="Pokedex Navigation" class="d-flex justify-content-center mt-5 mb-4">
                             <ul class="pagination justify-content-center mb-0">
+                                <% let prevPage = currentPage <= 1 ? totalPages : currentPage - 1; %>
+                                <li class="page-item">
+                                    <a class="page-link" href="/pokedex?<%= buildQuery({ page: prevPage }) %>">&lt;</a>
+                                </li>
 
-                                <!-- Previous Button (Loops to last page if on page 1) -->
-                                <% let prevPage=currentPage <=1 ? totalPages : currentPage - 1; let prevParams={
-                                    ...queryParams, page: prevPage }; %>
-                                    <li class="page-item">
-                                        <a class="page-link" href="/pokedex?<%= buildQuery({ page: prevPage }) %>">&lt;</a>
-                                    </li>
+                                <li class="page-item disabled">
+                                    <span class="page-link bg-light text-dark">Page <%= currentPage %> of <%= totalPages %></span>
+                                </li>
 
-                                    <!-- Page Number Indicator -->
-                                    <li class="page-item disabled">
-                                        <span class="page-link bg-light text-dark">Page <%= currentPage %> of <%=
-                                                    totalPages %></span>
-                                    </li>
-
-                                    <!-- Next Button (Loops to page 1 if on last page) -->
-                                    <% let nextPage=currentPage>= totalPages ? 1 : currentPage + 1;
-                                        let nextParams = { ...queryParams, page: nextPage };
-                                        %>
-                                        <li class="page-item">
-                                            <a class="page-link" href="/pokedex?<%= buildQuery({ page: nextPage }) %>">&gt;</a>
-                                        </li>
-
+                                <% let nextPage = currentPage >= totalPages ? 1 : currentPage + 1; %>
+                                <li class="page-item">
+                                    <a class="page-link" href="/pokedex?<%= buildQuery({ page: nextPage }) %>">&gt;</a>
+                                </li>
                             </ul>
                         </nav>
-                        <% } %>
-                            <footer class="small text-center text-muted mt-4">
-                                <p>Pokémon data sourced from <a href="https://pokeapi.co/" target="_blank">PokeAPI</a>.
-                                    <br>All rights
-                                    belong to Nintendo.
-                                </p>
-                            </footer>
+                    <% } %>
+
+                    <footer class="small text-center text-muted mt-4">
+                        <p>Pokémon data sourced from <a href="https://pokeapi.co/" target="_blank">PokeAPI</a>.<br>All rights belong to Nintendo.</p>
+                    </footer>
                 </div>
             </div>
 </body>
+</html>
