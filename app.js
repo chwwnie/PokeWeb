@@ -6,6 +6,8 @@ const multer = require('multer');
 const app = express();
 const router = express.Router();
 const port = 3000;
+const MySQLStore = require('express-mysql-session')(session);
+const sessionStore = new MySQLStore({}, db.promise ? db : db); 
 
 // Create a connection to the database
 const db = mysql.createConnection({
@@ -32,12 +34,17 @@ app.use(session({
   secret: 'secret',
   resave: false,
   saveUninitialized: true,
+  store: sessionStore,
   cookie: { maxAge: 1000 * 60 * 60 * 24 * 180 }
 }));
 
 app.use(flash());
 
 app.set('view engine', 'ejs');
+
+app.get('/', (req, res) => {
+  res.redirect('/pokedex');
+});
 
 // Pokedex route with search, filters, alphabetical order, and pagination
 app.get('/pokedex', (req, res) => {
