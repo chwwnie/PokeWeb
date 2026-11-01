@@ -23,7 +23,7 @@ A Pokédex website covering Generations 1–9 (Pokémon #1–1025), built with N
 1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) and start it. Wait until it says it is running.
 2. Download this repository (green **Code** button → **Download ZIP**, then unzip) or clone it:
    ```
-   git clone <this repository's URL>
+   git clone https://github.com/chwwnie/PokeWeb
    cd <folder name>
    ```
 3. Make sure `database/pokedex.sql` is in the project folder.
@@ -44,7 +44,7 @@ To wipe the database and re-import from scratch: `docker compose down -v`, then 
 2. Clone the repository and install the packages:
    ```
    git clone https://github.com/chwwnie/PokeWeb
-   cd <file_name>
+   cd <folder name>
    npm install
    ```
 3. Create the database and import the Pokémon data. Replace `pokedex` with your database name if you use a different one:
