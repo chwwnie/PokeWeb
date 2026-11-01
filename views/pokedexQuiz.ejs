@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    
+    <title>
+        PokéQuiz - Pokédex Quiz
+    </title>
+    <style>
+        .btn-outline-dark:hover {
+            background-color: #7e3636;
+        }
+
+        /* Icon-only buttons: just the symbol, no border or background until hovered */
+        .icon-btn {
+            border: 0;
+            background: transparent;
+            padding: 0.25rem 0.45rem;
+            font-size: 1.3rem;
+            line-height: 1;
+            border-radius: 0.5rem;
+            color: var(--bs-secondary-color);
+            cursor: pointer;
+            transition: color 0.15s, background-color 0.15s, transform 0.15s;
+        }
+
+        .icon-btn:hover {
+            color: var(--bs-body-color);
+            background: var(--bs-tertiary-bg);
+        }
+
+        .icon-btn:active { transform: scale(0.92); }
+        .icon-btn:focus-visible { outline: 2px solid var(--bs-primary); outline-offset: 1px; }
+        .icon-btn.danger { color: var(--bs-danger); }
+        .icon-btn.danger:hover { background: rgba(var(--bs-danger-rgb), 0.12); }
+        .icon-btn.active { color: var(--bs-success); }
+
+        /* Rows of boxes. A Pokémon with extra forms (Mega, Gigantamax, regional...) gets a wider box with one slot per form. */
+        .pokemon-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+            margin-left: 2.1rem;
+        }
+
+        /* One group per Pokémon (display: contents = no box of its own), one separate square per form */
+        .qgroup {
+            display: contents;
+        }
+
+        .qslot {
+            position: relative;
+            width: 55px;
+            height: 55px;
+            box-sizing: border-box;
+            border-radius: 0.375rem;
+            border: 1px solid var(--bs-border-color);
+            background: var(--bs-body-bg);
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            overflow: hidden;
+        }
+
+        .qslot .num {
+            position: absolute;
+            top: 2px;
+            left: 5px;
+            font-size: 0.65rem;
+            color: var(--bs-secondary-color);
+            z-index: 1;
+        }
+
+        .qslot img {
+            position: absolute;
+            inset: 3px;
+            width: calc(100% - 6px);
+            height: calc(100% - 6px);
+            object-fit: contain;
+            display: none;
+        }
+
+        /* Silhouette hint (optional): unanswered squares show a dark outline of each form */
+        .show-silhouettes .qgroup:not(.revealed):not(.missed) img {
+            display: block;
+            filter: brightness(0);
+            opacity: 0.3;
+        }
+
+        [data-bs-theme="dark"] .show-silhouettes .qgroup:not(.revealed):not(.missed) img {
+            filter: brightness(0) invert(1);
+            opacity: 0.25;
+        }
+
+        .qgroup.revealed img,
+        .qgroup.missed img {
+            display: block;
+            filter: none;
+            opacity: 1;
+        }
+
+        .qgroup.revealed .qslot {
+            border-color: #198754;
+            animation: pop 0.55s ease;
+        }
+
+        .qgroup.missed .qslot {
+            border-color: #dc3545;
+        }
+
+        .qgroup.missed img {
+            opacity: 0.55;
+        }
+
+        .qgroup.revealed .num,
+        .qgroup.missed .num {
+            display: none;
+        }
+
+        .qgroup.dup .qslot {
+            animation: dupFlash 0.6s ease;
+        }
+
+        @keyframes dupFlash {
+            0%, 100% { box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); }
+            40% { box-shadow: 0 0 0 3px #ffc107; }
+        }
+
+        @keyframes pop {
+            0%   { transform: scale(0.6); }
+            55%  { transform: scale(1.12); }
+            100% { transform: scale(1); }
+        }
+
+        /* Divider between the Generations and Types columns (only when they sit side by side) */
+        @media (min-width: 768px) {
+            .border-end-md { border-right: 1px solid var(--bs-border-color); }
+        }
+    </style>
+</head>
+
+<body>
+    <%- include('header') %>
+
+    <!-- How-to-play popup -->
+    <div class="modal fade" id="howToPlayModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false"
+        aria-labelledby="howToPlayTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 20px;">
+
+                <div class="modal-header border-0 justify-content-center pb-0">
+                    <h2 class="modal-title h3" id="howToPlayTitle">How to Play</h2>
+                </div>
+
+                <div class="modal-body px-4">
+                    <ol class="mb-0">
+                        <li class="mb-2">Enter as many Pokémon as you can within your preferred time limit.</li>
+                        <li class="mb-2">You may choose to quiz yourself on specific generations, types, etc.</li>
+                        <li>Good Luck!</li>
+                    </ol>
+                </div>
+
+                <div class="modal-footer border-0 justify-content-center pt-0">
+                    <button type="button" id="startGameBtn" class="btn btn-outline-dark px-5 py-2"
+                        style="border-radius: 20px;" data-bs-dismiss="modal">
+                        Let's Go!
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Game finished popup (completed, or time ran out) -->
+    <div class="modal fade" id="resultModal" tabindex="-1" aria-labelledby="resultTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content text-center" style="border-radius: 20px;">
+                <div class="modal-header border-0 justify-content-center pb-0">
+                    <h2 class="modal-title h3" id="resultTitle">Finished!</h2>
+                </div>
+                <div class="modal-body px-4">
+                    <p class="mb-0 fs-5" id="resultText"></p>
+                </div>
+                <div class="modal-footer border-0 justify-content-center pt-0 gap-2">
+                    <button type="button" id="playAgainBtn" class="btn btn-outline-dark px-4"
+                        style="border-radius: 20px;" data-bs-dismiss="modal">Play again</button>
+                    <button type="button" class="btn btn-outline-dark px-4" style="border-radius: 20px;"
+                        data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container" style="max-width: 960px;">
+        <h1 class="text-center mt-4">Pokédex Quiz</h1>
+
+        <div id="gameArea" class="d-none">
+
+            <!-- Input, timer and score stay pinned at the top while you scroll -->
+            <div id="stickyBar" class="bg-body pb-2 pt-3" style="position: sticky; top: 0; z-index: 100;">
+
+            <!-- Input + timer controls with 5-min step buttons, plus pause / stop right beside the timer -->
+            <div class="d-flex flex-wrap justify-content-center align-items-center gap-2">
+                <input id="answerInput" type="text" class="form-control"
+                    style="width: min(100%, 25rem); border-radius: 10px;"
+                    placeholder="Enter a Pokémon name to start..." autocomplete="off" autocapitalize="off"
+                    spellcheck="false" aria-label="Pokémon name">
+
+                <!-- Timer display input with decrease/increase buttons -->
+                <div class="input-group" style="width: 160px;">
+                    <button class="btn btn-outline-secondary btn-sm px-2" type="button" id="decreaseTimer" style="border-radius: 10px 0 0 10px;">-</button>
+                    <input id="timerDisplayInput" type="text" class="form-control text-center px-1 bg-body" value="00:00" aria-label="Timer display" readonly>
+                    <button class="btn btn-outline-secondary btn-sm px-2" type="button" id="increaseTimer" style="border-radius: 0 10px 10px 0;">+</button>
+                </div>
+
+                <div class="d-flex align-items-center">
+                    <button type="button" id="pauseBtn" class="icon-btn" title="Pause" aria-label="Pause">
+                        <i class="bi bi-pause-fill"></i>
+                    </button>
+                    <button type="button" id="stopBtn" class="icon-btn danger" title="Quit" aria-label="Quit">
+                        <i class="bi bi-stop-circle"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Score + icon buttons -->
+            <div class="d-flex flex-wrap justify-content-center align-items-center gap-1 mt-2">
+                <span id="scoreText" class="fw-semibold me-2">0 / 0</span>
+                <button type="button" class="icon-btn" data-bs-toggle="collapse" data-bs-target="#filterPanel"
+                    aria-expanded="false" aria-controls="filterPanel" title="Filters" aria-label="Filters">
+                    <i class="bi bi-funnel"></i>
+                </button>
+                <button type="button" id="restartBtn" class="icon-btn" title="Restart" aria-label="Restart">
+                    <i class="bi bi-arrow-repeat"></i>
+                </button>
+                <button type="button" class="icon-btn" data-bs-toggle="modal" data-bs-target="#howToPlayModal"
+                    title="How to play" aria-label="How to play">
+                    <i class="bi bi-question-circle"></i>
+                </button>
+            </div>
+
+            </div> <!-- end of sticky bar -->
+
+            <!-- Filters -->
+            <div class="collapse mt-3" id="filterPanel">
+                <div class="card card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3 border-end-md">
+                            <h6 class="fw-bold text-secondary">Generations</h6>
+                            <div class="row g-1">
+                                <% const regions = ['', 'Kanto', 'Johto', 'Hoenn', 'Sinnoh', 'Unova', 'Kalos', 'Alola', 'Galar', 'Paldea']; %>
+                                <% for (let i = 1; i <= 9; i++) { %>
+                                    <div class="col-6 col-sm-4">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="gen" value="<%= i %>"
+                                                id="gen<%= i %>">
+                                            <label class="form-check-label small" for="gen<%= i %>">
+                                                Gen <%= i %> (<%= regions[i] %>)
+                                            </label>
+                                        </div>
+                                    </div>
+                                <% } %>
+                            </div>
+
+                            <hr class="my-3">
+
+                            <h6 class="fw-bold text-secondary">Hints</h6>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="silhouetteToggle">
+                                <label class="form-check-label small" for="silhouetteToggle">Show Pokémon silhouettes</label>
+                            </div>
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" role="switch" id="cryToggle" checked>
+                                <label class="form-check-label small" for="cryToggle">Play cry when answered</label>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <h6 class="fw-bold text-secondary">Types</h6>
+                            <div class="row g-1">
+                                <% const allTypes = ['grass', 'poison', 'fire', 'water', 'bug', 'normal', 'electric', 'fairy', 'fighting', 'psychic', 'rock', 'ghost', 'ice', 'dragon', 'ground', 'steel', 'dark', 'flying']; %>
+                                <% allTypes.forEach(t => { %>
+                                    <div class="col-6 col-sm-4">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="type" value="<%= t %>"
+                                                id="type_<%= t %>">
+                                            <label class="form-check-label text-capitalize small" for="type_<%= t %>">
+                                                <%= t %>
+                                            </label>
+                                        </div>
+                                    </div>
+                                <% }) %>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="small text-muted mb-0">Leave a group empty to include everything. Changing a filter restarts the game.</p>
+                </div>
+            </div>
+
+            <!-- The boxes are built here by the script -->
+            <div id="board" class="mt-2 mb-5"></div>
+        </div>
+        <%- include('footer') %>
+    </div>
+
+    <script>
+        // ---------- Data ----------
+        const ALL = <%- JSON.stringify(pokemons).replace(/</g, '\\u003c') %>;
+        const REGIONS = { 1: 'Kanto', 2: 'Johto', 3: 'Hoenn', 4: 'Sinnoh', 5: 'Unova', 6: 'Kalos', 7: 'Alola', 8: 'Galar', 9: 'Paldea' };
+
+        const norm = s => String(s).toLowerCase()
+            .replace(/♀/g, 'f').replace(/♂/g, 'm')
+            .normalize('NFD').replace(/[̀-ͯ]/g, '')
+            .replace(/[^a-z0-9]/g, '');
+
+        const FORMS = <%- JSON.stringify(forms).replace(/</g, '\\u003c') %>;
+        const MAX_FORMS = 8;
+        const formsById = {};
+        FORMS.forEach(f => { if (f.sprite) (formsById[f.pokemon_id] = formsById[f.pokemon_id] || []).push(f); });
+        const formRank = n => /alolan|galarian|hisuian|paldean/i.test(n) ? 1 : /mega/i.test(n) ? 2 : /gigantamax/i.test(n) ? 3 : 4;
+
+        const DATA = ALL.map(p => {
+            const base = String(p.name).replace(/-(male|female)$/i, '');
+            const display = base.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+            let extra = formsById[p.id] || [];
+            extra = extra.length <= MAX_FORMS
+                ? extra.slice().sort((a, b) => formRank(a.form_name) - formRank(b.form_name) || a.form_name.localeCompare(b.form_name))
+                : [];
+            const slots = [{ label: display, sprite: p.image || p.sprite, art: p.sprite }].concat(extra.map(f => ({
+                label: f.form_name.toLowerCase().includes(base.toLowerCase()) ? f.form_name : display + ' (' + f.form_name + ')',
+                sprite: f.art || f.sprite,
+                art: f.sprite
+            })));
+            return {
+                id: Number(p.id),
+                name: p.name,
+                gen: Number(p.gen),
+                cry: p.cry || null,
+                types: (p.types || '').split(',').map(t => t.trim().toLowerCase()).filter(Boolean),
+                keys: Array.from(new Set([norm(p.name), norm(base)])),
+                display: display,
+                slots: slots.filter(s => s.sprite)
+            };
+        }).filter(p => p.slots.length);
+
+        // ---------- Elements & state ----------
+        const $ = id => document.getElementById(id);
+        const input = $('answerInput');
+        const board = $('board');
+        const timerDisplayInput = $('timerDisplayInput');
+        const decreaseBtn = $('decreaseTimer');
+        const increaseBtn = $('increaseTimer');
+        const pauseBtn = $('pauseBtn');
+        const stopBtn = $('stopBtn');
+        const silhouetteToggle = $('silhouetteToggle');
+        const cryToggle = $('cryToggle');
+        let currentCry = null;
+
+        let pool = [];
+        let lookup = new Map();
+        let revealedCount = 0;
+        let gameStarted = false;
+        let started = false;
+        let paused = false;
+        let finished = false;
+        let timeLeft = 0;
+        let initialLimitSec = 0;
+        let timerId = null;
+        let startedAt = 0;
+        let pending = null;
+
+        const fmt = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+
+        function ensureSrc(p) {
+            p.slots.forEach(s => {
+                if (s.img.getAttribute('src')) return;
+                s.img.onerror = () => {
+                    s.img.onerror = null;
+                    if (s.art && s.art !== s.sprite) s.img.src = s.art;
+                };
+                s.img.src = s.sprite;
+            });
+        }
+
+        function regionHeader(label) {
+            const wrap = document.createElement('div');
+            wrap.className = 'd-flex align-items-center my-3';
+            const text = document.createElement('p');
+            text.className = 'mb-0 me-3 text-muted text-nowrap';
+            text.style.fontSize = '1.1rem';
+            text.textContent = label;
+            const line = document.createElement('div');
+            line.className = 'flex-grow-1 border-top border-1 border-secondary';
+            line.style.marginTop = '0.3rem';
+            wrap.append(text, line);
+            return wrap;
+        }
+
+        function updateScore() {
+            $('scoreText').textContent = revealedCount + ' / ' + pool.length;
+        }
+
+        function updateTimerDisplay() {
+            if (!started) {
+                timerDisplayInput.value = initialLimitSec > 0 ? fmt(initialLimitSec) : '00:00';
+                timerDisplayInput.classList.remove('text-bg-danger', 'text-white');
+            } else {
+                timerDisplayInput.value = fmt(timeLeft);
+                const isCountdown = initialLimitSec > 0;
+                const low = isCountdown && !finished && timeLeft <= 10;
+                timerDisplayInput.classList.toggle('text-bg-danger', !!low);
+                timerDisplayInput.classList.toggle('text-white', !!low);
+            }
+        }
+
+        function resetGame(focus) {
+            clearInterval(timerId);
+            clearTimeout(pending);
+
+            const gens = new Set(Array.from(document.querySelectorAll('input[name="gen"]:checked')).map(i => Number(i.value)));
+            const types = new Set(Array.from(document.querySelectorAll('input[name="type"]:checked')).map(i => i.value));
+
+            pool = DATA
+                .filter(p => (!gens.size || gens.has(p.gen)) && (!types.size || p.types.some(t => types.has(t))))
+                .map(p => Object.assign({}, p, { revealed: false, el: null }));
+
+            lookup = new Map();
+            pool.forEach(p => p.keys.forEach(k => lookup.set(k, p)));
+
+            board.replaceChildren();
+            board.classList.toggle('show-silhouettes', silhouetteToggle.checked);
+
+            if (!pool.length) {
+                const none = document.createElement('p');
+                none.className = 'text-muted text-center mt-4';
+                none.textContent = 'No Pokémon match these filters.';
+                board.appendChild(none);
+            }
+
+            let lastGen = null, grid = null;
+            pool.forEach(p => {
+                if (p.gen !== lastGen) {
+                    lastGen = p.gen;
+                    board.appendChild(regionHeader(REGIONS[p.gen] || ('Gen ' + p.gen)));
+                    grid = document.createElement('div');
+                    grid.className = 'pokemon-grid';
+                    board.appendChild(grid);
+                }
+                const group = document.createElement('div');
+                group.className = 'qgroup';
+                p.slots = p.slots.map(s => {
+                    const slot = document.createElement('div');
+                    slot.className = 'qslot';
+                    slot.setAttribute('aria-label', 'Pokémon #' + p.id);
+                    const num = document.createElement('span');
+                    num.className = 'num';
+                    num.textContent = p.id;
+                    const img = document.createElement('img');
+                    img.alt = '';
+                    img.loading = 'lazy';
+                    img.decoding = 'async';
+                    slot.append(num, img);
+                    group.appendChild(slot);
+                    return Object.assign({}, s, { img: img, slotEl: slot });
+                });
+                grid.appendChild(group);
+                p.el = group;
+                if (silhouetteToggle.checked) ensureSrc(p);
+            });
+
+            revealedCount = 0;
+            started = false;
+            paused = false;
+            finished = false;
+            initialLimitSec = 0; 
+            timeLeft = 0;
+            decreaseBtn.disabled = false;
+            increaseBtn.disabled = false;
+            setPauseIcon(false);
+            board.style.opacity = '1';
+            timerDisplayInput.value = '00:00';
+            input.disabled = false;
+            input.value = '';
+            updateScore();
+            updateTimerDisplay();
+            if (focus) input.focus();
+        }
+
+        function scrollToPokemon(p) {
+            const target = p.slots[0].slotEl;
+            const r = target.getBoundingClientRect();
+            const barH = $('stickyBar') ? $('stickyBar').getBoundingClientRect().bottom : 0;
+            if (r.top >= barH + 8 && r.bottom <= window.innerHeight - 8) return;
+            const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            target.scrollIntoView({ behavior: calm ? 'auto' : 'smooth', block: 'center' });
+        }
+
+        function reveal(p) {
+            p.revealed = true;
+            revealedCount++;
+            ensureSrc(p);
+            p.el.classList.add('revealed');
+            p.slots.forEach(s => { s.slotEl.title = s.label; });
+            input.value = '';
+            scrollToPokemon(p);
+            if (cryToggle.checked && p.cry) {
+                if (currentCry) currentCry.pause();
+                currentCry = new Audio(p.cry);
+                currentCry.volume = 0.6;
+                currentCry.play().catch(() => {});
+            }
+            updateScore();
+            if (revealedCount === pool.length) finish('complete');
+        }
+
+        function tryMatch(v) {
+            clearTimeout(pending);
+            const hit = lookup.get(v);
+            if (!hit) return;
+
+            const longer = pool.some(o => !o.revealed && o !== hit && o.keys.some(k => k.length > v.length && k.startsWith(v)));
+
+            if (hit.revealed) {
+                if (!longer) {
+                    input.value = '';
+                    hit.el.classList.remove('dup');
+                    void hit.el.offsetWidth;
+                    hit.el.classList.add('dup');
+                }
+                return;
+            }
+
+            if (longer) {
+                pending = setTimeout(() => { if (!finished && !paused && norm(input.value) === v) reveal(hit); }, 600);
+            } else {
+                reveal(hit);
+            }
+        }
+
+        // Increase/Decrease timer by 5 minutes (300 seconds) before starting
+        increaseBtn.addEventListener('click', () => {
+            if (started) return;
+            initialLimitSec += 300;
+            updateTimerDisplay();
+        });
+
+        decreaseBtn.addEventListener('click', () => {
+            if (started || initialLimitSec <= 0) return;
+            initialLimitSec -= 300;
+            updateTimerDisplay();
+        });
+
+        // Pause / Resume functionality (the button shows only an icon)
+        function setPauseIcon(isPaused) {
+            pauseBtn.innerHTML = isPaused ? '<i class="bi bi-play-fill"></i>' : '<i class="bi bi-pause-fill"></i>';
+            pauseBtn.title = isPaused ? 'Resume' : 'Pause';
+            pauseBtn.setAttribute('aria-label', pauseBtn.title);
+            pauseBtn.classList.toggle('active', isPaused);
+        }
+
+        function togglePause() {
+            if (!started || finished) return;
+            paused = !paused;
+            if (paused) {
+                clearInterval(timerId);
+                input.disabled = true;
+                setPauseIcon(true);
+                board.style.opacity = '0.3'; // dim board while paused
+            } else {
+                input.disabled = false;
+                input.focus();
+                setPauseIcon(false);
+                board.style.opacity = '1';
+
+                timerId = setInterval(() => {
+                    if (initialLimitSec > 0) {
+                        timeLeft--;
+                        updateTimerDisplay();
+                        if (timeLeft <= 0) finish('time');
+                    } else {
+                        timeLeft++;
+                        updateTimerDisplay();
+                    }
+                }, 1000);
+            }
+        }
+
+        pauseBtn.addEventListener('click', togglePause);
+
+        // Stop / Quit button redirects back to /pokemonQuiz
+        stopBtn.addEventListener('click', () => {
+            if (confirm('Are you sure you want to quit the quiz?')) {
+                window.location.href = '/pokemonQuiz';
+            }
+        });
+
+        input.addEventListener('input', () => {
+            if (finished) return;
+
+            // If paused, typing or clicking back into input automatically resumes the game
+            if (paused) {
+                togglePause();
+            }
+
+            const v = norm(input.value);
+            if (!v) { clearTimeout(pending); return; }
+
+            if (!started) {
+                started = true;
+                startedAt = Date.now();
+                decreaseBtn.disabled = true;
+                increaseBtn.disabled = true;
+
+                timeLeft = initialLimitSec > 0 ? initialLimitSec : 0;
+
+                timerId = setInterval(() => {
+                    if (initialLimitSec > 0) {
+                        timeLeft--;
+                        updateTimerDisplay();
+                        if (timeLeft <= 0) finish('time');
+                    } else {
+                        timeLeft++; // Stopwatch counts up
+                        updateTimerDisplay();
+                    }
+                }, 1000);
+                updateTimerDisplay();
+            }
+            tryMatch(v);
+        });
+
+        let resultModal = null;
+
+        function finish(reason) {
+            if (finished) return;
+            finished = true;
+            clearInterval(timerId);
+            clearTimeout(pending);
+            input.disabled = true;
+            updateTimerDisplay();
+
+            const elapsed = Math.round((Date.now() - startedAt) / 1000);
+
+            if (reason === 'time') {
+                pool.forEach(p => {
+                    if (!p.revealed) {
+                        ensureSrc(p);
+                        p.el.classList.add('missed');
+                        p.slots.forEach(s => { s.slotEl.title = s.label; });
+                    }
+                });
+                $('resultTitle').textContent = "Time's up!";
+                $('resultText').textContent = 'You named ' + revealedCount + ' of ' + pool.length + ' Pokémon.';
+            } else {
+                $('resultTitle').textContent = 'Congratulations!';
+                $('resultText').textContent = 'You completed all ' + pool.length + ' Pokémon in ' + fmt(elapsed) + '.';
+            }
+            resultModal.show();
+        }
+
+        silhouetteToggle.addEventListener('change', () => {
+            board.classList.toggle('show-silhouettes', silhouetteToggle.checked);
+            if (silhouetteToggle.checked) pool.forEach(ensureSrc);
+        });
+
+        $('filterPanel').addEventListener('change', e => {
+            if (e.target.id !== 'silhouetteToggle' && e.target.id !== 'cryToggle') resetGame(false);
+        });
+        $('restartBtn').addEventListener('click', () => resetGame(true));
+        $('playAgainBtn').addEventListener('click', () => resetGame(true));
+
+        document.addEventListener('DOMContentLoaded', () => {
+            resultModal = bootstrap.Modal.getOrCreateInstance($('resultModal'));
+            const howEl = $('howToPlayModal');
+            const howModal = bootstrap.Modal.getOrCreateInstance(howEl);
+
+            howEl.addEventListener('hidden.bs.modal', () => {
+                if (!gameStarted) {
+                    gameStarted = true;
+                    $('gameArea').classList.remove('d-none');
+                    resetGame(true);
+                } else if (!input.disabled) {
+                    input.focus();
+                }
+            });
+
+            howModal.show();
+        });
+    </script>
+</body>
+
+</html>
