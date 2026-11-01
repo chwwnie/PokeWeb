@@ -8,8 +8,6 @@ A Pokédex website covering Generations 1–9 (Pokémon #1–1025), built with N
 - **Alternate forms**: regional, Mega and Gigantamax forms with their own artwork, stats, types and cries
 - **Shiny toggle** and cries on every Pokémon page
 - **Pokédex Quiz**: name as many Pokémon as you can, with optional timer, silhouettes and generation/type filters
-- **Team Builder**: build a team of six, enter movesets, get a type-effectiveness assessment for the game you choose, and save teams in your browser
-- **Dark mode**
 
 > This project runs on your own computer. There is no hosted version currently.
 
