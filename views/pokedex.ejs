@@ -273,45 +273,47 @@
                                 </a>
                             </div>
                         
-                            <!-- Collapsible Filter Panel -->
+                           <!-- Collapsible Filter Panel -->
                             <div class="collapse mt-2 position-absolute start-0 end-0 shadow-lg" id="filterCollapse"
                                 style="z-index: 1000;">
                                 <div class="card card-body bg-white border">
                                     <div class="row">
-                                        <!-- LEFT: Generations (top) + Alphabetical (bottom) -->
-                                        <div class="col-md-6 mb-2 border-end">
-                                            <h6 class="fw-bold text-secondary">Generations</h6>
-                                            <div class="row g-1">
-                                                <% const regions = ['', 'Kanto', 'Johto', 'Hoenn', 'Sinnoh', 'Unova', 'Kalos', 'Alola', 'Galar', 'Paldea']; %>
-                                                <% for (let i = 1; i <= 9; i++) { %>
-                                                    <div class="col-4">
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="checkbox" name="generations" value="<%= i %>"
-                                                                id="gen<%= i %>"
-                                                                <%= typeof selectedGens !== 'undefined' && selectedGens.includes(String(i)) ? 'checked' : '' %>>
-                                                            <label class="form-check-label small" for="gen<%= i %>">
-                                                                Gen <%= i %> (<%= regions[i] %>)
-                                                            </label>
+                                        <!-- LEFT: Generations & Alphabetical -->
+                                        <div class="col-md-6 mb-2 border-end d-flex flex-column justify-content-between">
+                                            <div>
+                                                <h6 class="fw-bold text-secondary">Generations</h6>
+                                                <div class="row g-1 mb-3">
+                                                    <% const regions = ['', 'Kanto', 'Johto', 'Hoenn', 'Sinnoh', 'Unova', 'Kalos', 'Alola', 'Galar', 'Paldea']; %>
+                                                    <% for (let i = 1; i <= 9; i++) { %>
+                                                        <div class="col-4">
+                                                            <div class="form-check">
+                                                                <input class="form-check-input" type="checkbox" name="generations" value="<%= i %>"
+                                                                    id="gen<%= i %>"
+                                                                    <%= typeof selectedGens !== 'undefined' && selectedGens.includes(String(i)) ? 'checked' : '' %>>
+                                                                <label class="form-check-label small" for="gen<%= i %>">
+                                                                    Gen <%= i %> (<%= regions[i] %>)
+                                                                </label>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                <% } %>
+                                                    <% } %>
+                                                </div>
                                             </div>
-                </div>
 
-                                            <hr class="my-3">
-
-                                            <h6 class="fw-bold text-secondary">Alphabetical</h6>
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" name="sortby" value="name" id="sortByName"
-                                                    <%= typeof currentSortBy !== 'undefined' && currentSortBy === 'name' ? 'checked' : '' %>>
-                                                <label class="form-check-label small" for="sortByName">Alphabetical (A–Z)</label>
+                                            <div>
+                                                <hr class="my-2">
+                                                <h6 class="fw-bold text-secondary mt-2">Alphabetical</h6>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" name="sortby" value="name" id="sortByName"
+                                                        <%= typeof currentSortBy !== 'undefined' && currentSortBy === 'name' ? 'checked' : '' %>>
+                                                    <label class="form-check-label small" for="sortByName">Alphabetical (A–Z)</label>
+                                                </div>
                                             </div>
                                         </div>
 
                                         <!-- RIGHT: Types -->
                                         <div class="col-md-6 mb-2">
                                             <h6 class="fw-bold text-secondary">Types</h6>
-                                            <div style="max-height: 340px; overflow-y: auto;" class="pe-2">
+                                            <div style="max-height: 280px; overflow-y: auto;" class="pe-2">
                                                 <% const allTypes = ['grass', 'poison', 'fire', 'water', 'bug', 'normal', 'electric', 'fairy', 'fighting', 'psychic', 'rock', 'ghost', 'ice', 'dragon', 'ground', 'steel', 'dark', 'flying']; %>
                                                 <div class="row g-1">
                                                     <% allTypes.forEach(t => { %>
@@ -334,6 +336,7 @@
                                 </div>
                             </div>
                         </form>
+                    </div>
                     </div>
 
                     <!-- Pokémon Grid Layout -->
@@ -439,9 +442,7 @@
                         </nav>
                     <% } %>
 
-                    <footer class="small text-center text-muted mt-4">
-                        <p>Pokémon data sourced from <a href="https://pokeapi.co/" target="_blank">PokéAPI</a>.<br>All rights belong to Nintendo.</p>
-                    </footer>
+                    <%- include('footer') %>
             </div>
 </body>
 </html>
