@@ -73,6 +73,7 @@
     </style>
 </head>
 
+
 <body>
     <%- include('header') %>
 
@@ -104,8 +105,8 @@
         shiny: f.form_shiny_img,
         // Regional forms / Megas can have different types (e.g. Hisuian Avalugg is Ice/Rock)
         types: (() => {
-            if (!f.form_types) return baseTypes;
-            const ft = f.form_types.split(',').map(t => t.trim().toLowerCase());
+            if (!f.form_type) return baseTypes;
+            const ft = f.form_type.split(',').map(t => t.trim().toLowerCase());
             // Same types as the default form? Keep the default form's order so the badges don't swap.
             const sameSet = ft.length === baseTypes.length && ft.every(t => baseTypes.includes(t));
             return sameSet ? baseTypes : ft;
@@ -387,10 +388,7 @@
                     <a href="/pokedex" class="btn btn-outline-secondary" style="font-size: 1.2rem;">Back to Pokedéx</a>
                 </div>
 
-                <footer class="small text-center text-muted mt-4 mb-5">
-                    <p>Pokémon data sourced from <a href="https://pokeapi.co/" target="_blank">PokéAPI</a>.<br>All
-                        rights belong to Nintendo.</p>
-                </footer>
+                <%- include('footer') %>
             </div>
         </div>
     </div>
