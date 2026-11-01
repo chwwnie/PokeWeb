@@ -1,0 +1,38 @@
+# One-command setup:  docker compose up --build
+# Then open http://localhost:3000
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: angel!n@p0kew$b
+      MYSQL_DATABASE: angelina_pokemonweb
+    volumes:
+      - ./database:/docker-entrypoint-initdb.d:ro
+      - dbdata:/var/lib/mysql
+    healthcheck:
+      # 127.0.0.1 forces a network connection, which only works once the REAL server is up
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-pangel!n@p0kew$b", "--silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 20s
+
+  web:
+    build: .
+    restart: on-failure
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: angel!n@p0kew$b
+      DB_NAME: angelina_pokemonweb
+      DB_SSL: "false"
+      SESSION_SECRET: 051675544f3a6c27482b7e28fd149842a639c65b2dcd5134f9d99ce348f47d49
+
+volumes:
+  dbdata:

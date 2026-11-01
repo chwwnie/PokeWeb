@@ -1,13 +1,14 @@
 const axios = require('axios');
 const mysql = require('mysql2');
 
+require('dotenv').config();
 const db = mysql.createConnection({
-    host: 'mysql-25f09974-pokemonweb.i.aivencloud.com',
-    port: 21815,
-    user: 'avnadmin',
-    password: 'AVNS_Ct-PVYuRsFRQ8vzesOG',
-    database: 'defaultdb',
-    ssl: { rejectUnauthorized: false }   // Aiven requires SSL
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined
 });
 
 // ---------- Helpers ----------
@@ -59,6 +60,8 @@ async function seedPokemon(id) {
         // Official 2D artwork only (no pixel sprites, no 3D Home renders)
         const image = data.sprites.other?.['official-artwork']?.front_default || null;
         const shinyImage = data.sprites.other?.['official-artwork']?.front_shiny || null;
+
+        const sprite = data.sprites.front_default || data.sprites.other?.home?.front_default || image;
 
         const genName = speciesData.generation.name;
         const regionMap = {
@@ -217,7 +220,8 @@ async function seedPokemon(id) {
                     height: v.height / 10,
                     weight: v.weight / 10,
                     cryLatest: v.cries?.latest || null,
-                    cryLegacy: v.cries?.legacy || null
+                    cryLegacy: v.cries?.legacy || null,
+                    sprite: v.sprites.front_default || v.sprites.other?.home?.front_default || art.front_default
                 });
             } catch (varErr) {
                 console.error(`Error fetching variant ${slug}:`, varErr.message);
@@ -239,7 +243,8 @@ async function seedPokemon(id) {
                     const art = fd.sprites?.other?.['official-artwork'];
                     if (!art?.front_default || art.front_default === image) continue;
 
-                    await saveForm(formLabelFromSuffix(suffix, baseDisplay), art.front_default, art.front_shiny || null);
+                    await saveForm(formLabelFromSuffix(suffix, baseDisplay), art.front_default, art.front_shiny || null,
+                        { sprite: fd.sprites?.front_default || art.front_default });
                 } catch (formErr) {
                     console.error(`Error fetching form ${f.name}:`, formErr.message);
                 }

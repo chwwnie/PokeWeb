@@ -5,17 +5,17 @@ const flash = require('connect-flash');
 const multer = require('multer');
 const app = express();
 const router = express.Router();
-const port = process.env.PORT || 3000;
 
-// Create a connection to the database
-const db = mysql.createConnection({
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  ssl: { rejectUnauthorized: false }
-});
+require('dotenv').config();   // first line of app.js (run: npm install dotenv)
+
+   const db = mysql.createConnection({
+     host: process.env.DB_HOST,
+     port: process.env.DB_PORT,
+     user: process.env.DB_USER,
+     password: process.env.DB_PASSWORD,
+     database: process.env.DB_NAME,
+     ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined
+   });
 
 db.connect((err) => {
   if (err) {
@@ -225,8 +225,34 @@ app.get('/pokemonQuiz', (req, res) => {
   res.render('pokemonQuiz');
 });
 
-app.post('/pokemonQuiz', (req, res) => {
-  res.render('pokemonQuiz');
+app.get('/pokedexQuiz', (req, res) => {
+  const sql = `SELECT p.pokemon_id AS id, p.pokemon_name AS name,
+                      p.pokemon_generation AS gen, p.pokemon_img AS image,
+                      p.pokemon_sprite AS sprite,
+                      p.pokemon_cry_latest AS cry,
+                      GROUP_CONCAT(t.type_name) AS types
+               FROM pokemons p
+               LEFT JOIN pokemon_types pt ON p.pokemon_id = pt.pokemon_id
+               LEFT JOIN types t ON pt.type_id = t.type_id
+               GROUP BY p.pokemon_id
+               ORDER BY p.pokemon_id`;
+  db.query(sql, (err, rows) => {
+    if (err) { console.error(err); return res.status(500).send('Unable to load quiz'); }
+    db.query(`SELECT pokemon_id, form_name, form_img AS art,
+                 COALESCE(form_sprite, form_img) AS sprite
+          FROM pokemon_forms`, (err2, forms) => {
+      if (err2) { console.error(err2); return res.status(500).send('Unable to load quiz'); }
+      res.render('pokedexQuiz', { pokemons: rows, forms: forms });
+    });
+  });
+});
+
+app.get('/pokemonTeamBuilder', (req, res) => {
+  res.render('pokemonTeamBuilder');
+});
+
+app.post('/pokemonTeamBuilder', (req, res) => {
+  res.render('pokemonTeamBuilder');
 });
 
 app.listen(process.env.PORT || 3000, () => {
