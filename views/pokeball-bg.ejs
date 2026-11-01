@@ -1,0 +1,13 @@
+<%
+  const lefts  = [4, 14, 24, 33, 42, 52, 61, 70, 79, 88, 94, 9, 47, 75];
+  const sizes  = [40, 64, 32, 52, 76, 36, 58, 44, 68, 30, 48, 56, 34, 60];
+  const durs   = [22, 30, 26, 34, 28, 24, 32, 27, 36, 25, 29, 31, 23, 33];
+  const delays = [0, -6, -12, -3, -18, -9, -24, -15, -2, -20, -8, -27, -13, -5];
+  const sways  = [20, -30, 25, -18, 35, -25, 22, -35, 28, -20, 30, -24, 18, -28];
+%>
+<div class="bg-balls" aria-hidden="true">
+  <% for (let i = 0; i < lefts.length; i++) { %>
+    <span class="ball"
+          style="left: <%= lefts[i] %>%; --s: <%= sizes[i] %>px; --d: <%= durs[i] %>s; --delay: <%= delays[i] %>s; --sway: <%= sways[i] %>px;"></span>
+  <% } %>
+</div>
