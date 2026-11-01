@@ -1,0 +1,61 @@
+/* Floating Pokéball background (decorative, sits behind everything) */
+.bg-balls {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.ball {
+    position: absolute;
+    bottom: -100px;
+    width: var(--s);
+    height: var(--s);
+    border-radius: 50%;
+    box-sizing: border-box;
+    border: calc(var(--s) * 0.05) solid #222;
+    background:
+        radial-gradient(circle at 50% 50%, #fff 0 11%, #222 12% 21%, transparent 22%),   /* centre button */
+        linear-gradient(to bottom, #e53935 0 44%, #222 44% 56%, #fff 56% 100%);          /* red top, band, white bottom */
+    --o: 0.5;                                  /* how visible each ball is */
+    opacity: 0;
+    will-change: transform, opacity;
+    animation: floatUp var(--d) linear var(--delay) infinite;
+}
+
+@keyframes floatUp {
+    0%   { transform: translate3d(0, 0, 0) rotate(0deg);                          opacity: 0; }
+    8%   {                                                                         opacity: var(--o); }
+    25%  { transform: translate3d(var(--sway), -30vh, 0) rotate(90deg); }
+    50%  { transform: translate3d(calc(var(--sway) * -1), -65vh, 0) rotate(180deg); }
+    75%  { transform: translate3d(var(--sway), -100vh, 0) rotate(270deg); }
+    92%  {                                                                         opacity: var(--o); }
+    100% { transform: translate3d(0, -135vh, 0) rotate(360deg);                   opacity: 0; }
+}
+
+/* Respects people who turn animations off in their device settings */
+/* Reduced motion: no animation, show the balls as a still pattern instead */
+/* @media (prefers-reduced-motion: reduce) {
+    .ball {
+        animation: none;
+        opacity: var(--o);
+        transform: rotate(0deg);
+    }
+
+    /* The balls normally rise from the bottom, so give each one a fixed height */
+    /* .ball:nth-child(1)  { bottom: 8%;  transform: rotate(20deg); }
+    .ball:nth-child(2)  { bottom: 62%; transform: rotate(-35deg); }
+    .ball:nth-child(3)  { bottom: 30%; transform: rotate(70deg); }
+    .ball:nth-child(4)  { bottom: 78%; transform: rotate(-10deg); }
+    .ball:nth-child(5)  { bottom: 15%; transform: rotate(45deg); }
+    .ball:nth-child(6)  { bottom: 48%; transform: rotate(-60deg); }
+    .ball:nth-child(7)  { bottom: 88%; transform: rotate(15deg); }
+    .ball:nth-child(8)  { bottom: 22%; transform: rotate(-25deg); }
+    .ball:nth-child(9)  { bottom: 70%; transform: rotate(55deg); }
+    .ball:nth-child(10) { bottom: 40%; transform: rotate(-80deg); }
+    .ball:nth-child(11) { bottom: 5%;  transform: rotate(30deg); }
+    .ball:nth-child(12) { bottom: 55%; transform: rotate(-15deg); }
+    .ball:nth-child(13) { bottom: 92%; transform: rotate(65deg); }
+    .ball:nth-child(14) { bottom: 35%; transform: rotate(-45deg); }
+} */
