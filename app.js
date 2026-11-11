@@ -228,7 +228,6 @@ app.get('/pokemonQuiz', (req, res) => {
 app.get('/pokedexQuiz', (req, res) => {
   const sql = `SELECT p.pokemon_id AS id, p.pokemon_name AS name,
                       p.pokemon_generation AS gen, p.pokemon_img AS image,
-                      p.pokemon_sprite AS sprite,
                       p.pokemon_cry_latest AS cry,
                       GROUP_CONCAT(t.type_name) AS types
                FROM pokemons p
@@ -238,9 +237,7 @@ app.get('/pokedexQuiz', (req, res) => {
                ORDER BY p.pokemon_id`;
   db.query(sql, (err, rows) => {
     if (err) { console.error(err); return res.status(500).send('Unable to load quiz'); }
-    db.query(`SELECT pokemon_id, form_name, form_img AS art,
-                 COALESCE(form_sprite, form_img) AS sprite
-          FROM pokemon_forms`, (err2, forms) => {
+    db.query(`SELECT pokemon_id, form_name, form_img AS sprite FROM pokemon_forms`, (err2, forms) => {
       if (err2) { console.error(err2); return res.status(500).send('Unable to load quiz'); }
       res.render('pokedexQuiz', { pokemons: rows, forms: forms });
     });
